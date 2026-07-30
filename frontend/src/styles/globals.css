@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 14 165 233;    /* sky-500 */
+    --color-surface: 255 255 255;
+    --color-surface-dark: 15 23 42; /* slate-900 */
+  }
+
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-slate-900 text-slate-100;
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  }
+}
