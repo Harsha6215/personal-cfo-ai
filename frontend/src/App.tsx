@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
+import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { ToastProvider } from "@/components/ui/Toast";
 import { PageSpinner } from "@/components/ui/Spinner";
 
@@ -17,8 +18,14 @@ export default function App() {
           {/* Public */}
           <Route path="/login" element={<Login />} />
 
-          {/* App shell — all authenticated routes nest inside */}
-          <Route element={<AppShell />}>
+          {/* Protected app shell — all authenticated routes nest inside */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppShell />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/portfolio" element={<ComingSoon />} />
             <Route path="/watchlist" element={<ComingSoon />} />

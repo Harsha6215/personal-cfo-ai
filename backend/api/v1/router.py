@@ -20,8 +20,8 @@ router = APIRouter(prefix="/api/v1")
 router.include_router(system.router)
 
 # ── Story 6: Auth ──────────────────────────────────────────────────────────────
-# from backend.api.v1 import auth
-# router.include_router(auth.router, prefix="/auth")
+from backend.api.v1 import auth
+router.include_router(auth.router, prefix="/auth")
 
 # ── Story 5+: Portfolio ────────────────────────────────────────────────────────
 # from backend.api.v1 import portfolio

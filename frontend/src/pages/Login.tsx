@@ -2,10 +2,13 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { login, register } from "@/services/auth";
 
 export default function Login() {
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -13,11 +16,23 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Auth wired in Story 6 — for now just simulate
-    await new Promise((r) => setTimeout(r, 800));
-    toast("Authentication coming in Story 6", "info");
-    setLoading(false);
-    navigate("/dashboard");
+
+    try {
+      if (mode === "register") {
+        await register(email, password, fullName || undefined);
+        toast("Account created! Logging you in…", "success");
+        // Auto-login after register
+        await login(email, password);
+      } else {
+        await login(email, password);
+      }
+      toast("Welcome to Personal CFO AI", "success");
+      navigate("/dashboard");
+    } catch (err: any) {
+      toast(err.message || "Authentication failed", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,9 +58,27 @@ export default function Login() {
 
         {/* Card */}
         <div className="rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-2xl">
-          <h2 className="mb-6 text-lg font-semibold text-white">Sign in</h2>
+          <h2 className="mb-6 text-lg font-semibold text-white">
+            {mode === "login" ? "Sign in" : "Create account"}
+          </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            {mode === "register" && (
+              <div>
+                <label htmlFor="fullName" className="mb-1.5 block text-sm font-medium text-slate-300">
+                  Full name
+                </label>
+                <input
+                  id="fullName"
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="input"
+                  placeholder="Harshavardhan Reddy"
+                />
+              </div>
+            )}
+
             <div>
               <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-300">
                 Email address
@@ -67,35 +100,55 @@ export default function Login() {
                 <label htmlFor="password" className="text-sm font-medium text-slate-300">
                   Password
                 </label>
-                <a href="#" className="text-xs text-sky-400 hover:text-sky-300">Forgot password?</a>
+                {mode === "login" && (
+                  <span className="text-xs text-slate-500 cursor-not-allowed">Forgot password? (Later)</span>
+                )}
               </div>
               <input
                 id="password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
                 placeholder="••••••••"
               />
+              {mode === "register" && (
+                <p className="mt-1 text-xs text-slate-500">Minimum 8 characters</p>
+              )}
             </div>
 
             <Button type="submit" variant="primary" className="w-full" loading={loading}>
-              {loading ? "Signing in…" : "Sign in"}
+              {loading
+                ? mode === "login" ? "Signing in…" : "Creating account…"
+                : mode === "login" ? "Sign in" : "Create account"}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-slate-500">
-            Don't have an account?{" "}
-            <a href="#" className="text-sky-400 hover:text-sky-300">Create one</a>
+            {mode === "login" ? (
+              <>
+                Don't have an account?{" "}
+                <button onClick={() => setMode("register")} className="text-sky-400 hover:text-sky-300">
+                  Create one
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{" "}
+                <button onClick={() => setMode("login")} className="text-sky-400 hover:text-sky-300">
+                  Sign in
+                </button>
+              </>
+            )}
           </div>
 
-          {/* Social auth — Story 6 */}
+          {/* Social auth — Later Epics */}
           <div className="mt-6">
             <div className="relative flex items-center">
               <div className="flex-grow border-t border-slate-700" />
-              <span className="mx-3 text-xs text-slate-500">Coming in Story 6</span>
+              <span className="mx-3 text-xs text-slate-500">Coming later</span>
               <div className="flex-grow border-t border-slate-700" />
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2">

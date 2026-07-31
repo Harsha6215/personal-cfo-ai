@@ -136,12 +136,39 @@ export function Sidebar() {
       <div className="border-t border-slate-200 p-3 dark:border-slate-700">
         <div className="flex items-center gap-3 rounded-lg px-3 py-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white">
-            H
+            {(() => {
+              const raw = localStorage.getItem("user");
+              if (raw) {
+                const u = JSON.parse(raw);
+                return (u.full_name || u.email || "U").charAt(0).toUpperCase();
+              }
+              return "U";
+            })()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">Harshavardhan</p>
+            <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+              {(() => {
+                const raw = localStorage.getItem("user");
+                if (raw) {
+                  const u = JSON.parse(raw);
+                  return u.full_name || u.email;
+                }
+                return "User";
+              })()}
+            </p>
             <p className="truncate text-xs text-slate-500 dark:text-slate-400">Epic 1 · Foundation</p>
           </div>
+          <button
+            onClick={() => { localStorage.clear(); window.location.href = "/login"; }}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-500 dark:hover:bg-slate-800 dark:hover:text-red-400"
+            aria-label="Logout"
+            title="Logout"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
         </div>
       </div>
     </aside>
