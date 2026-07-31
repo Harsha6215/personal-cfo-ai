@@ -8,6 +8,7 @@ import { PageSpinner } from "@/components/ui/Spinner";
 // Lazy-load pages — keeps initial bundle small
 const Login      = lazy(() => import("@/pages/Login"));
 const Dashboard  = lazy(() => import("@/pages/Dashboard"));
+const Import     = lazy(() => import("@/pages/Import"));
 const ComingSoon = lazy(() => import("@/pages/ComingSoon"));
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
           >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/portfolio" element={<ComingSoon />} />
+            <Route path="/import"    element={<Import />} />
             <Route path="/watchlist" element={<ComingSoon />} />
             <Route path="/research"  element={<ComingSoon />} />
             <Route path="/advisor"   element={<ComingSoon />} />

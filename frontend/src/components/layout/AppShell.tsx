@@ -5,6 +5,7 @@ import { TopBar } from "./TopBar";
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/portfolio": "Portfolio",
+  "/import":    "Import Portfolio",
   "/watchlist": "Watchlist",
   "/research": "Research",
   "/goals": "Goals",
