@@ -24,9 +24,10 @@ logger = structlog.get_logger(__name__)
 router = APIRouter(tags=["Import"])
 
 # ── Adapter registry (adapters registered here) ───────────────────────────────
-# Story 2.3 will add: from backend.services.import_engine.adapters.zerodha import ZerodhaAdapter
+from backend.services.import_engine.adapters.zerodha import ZerodhaHoldingsAdapter
+
 registry = AdapterRegistry()
-# registry.register(ZerodhaAdapter())  # uncomment in Story 2.3
+registry.register(ZerodhaHoldingsAdapter())
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
