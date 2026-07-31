@@ -2,7 +2,7 @@
 Portfolio model.
 
 A user can have multiple portfolios (e.g. "Long Term", "Trading", "Retirement").
-Each portfolio contains Holdings.
+In Epic 2, holdings are no longer stored — they're COMPUTED from FinancialEvents.
 """
 
 from sqlalchemy import ForeignKey, String
@@ -23,11 +23,17 @@ class Portfolio(TimestampMixin, Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), default="INR", nullable=False)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # ── Relationships ──────────────────────────────────────────────────────────
     user: Mapped["User"] = relationship("User", back_populates="portfolios")  # type: ignore[name-defined]
+    # Legacy: keep holdings relationship for backward compat during migration
     holdings: Mapped[list["Holding"]] = relationship(  # type: ignore[name-defined]
         "Holding", back_populates="portfolio", cascade="all, delete-orphan"
+    )
+    # Epic 2: event-sourced transactions
+    financial_events: Mapped[list["FinancialEvent"]] = relationship(  # type: ignore[name-defined]
+        "FinancialEvent", back_populates="portfolio", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

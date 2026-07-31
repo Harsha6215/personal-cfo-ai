@@ -23,6 +23,7 @@ router.include_router(system.router)
 from backend.api.v1 import auth
 router.include_router(auth.router, prefix="/auth")
 
-# ── Story 5+: Portfolio ────────────────────────────────────────────────────────
-# from backend.api.v1 import portfolio
-# router.include_router(portfolio.router, prefix="/portfolios")
+# ── Epic 2: Portfolio & Assets ─────────────────────────────────────────────────
+from backend.api.v1 import portfolios, assets
+router.include_router(portfolios.router, prefix="/portfolios")
+router.include_router(assets.router, prefix="/assets")

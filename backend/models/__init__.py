@@ -5,4 +5,19 @@ from backend.models.holding import Holding
 from backend.models.transaction import Transaction
 from backend.models.watchlist import WatchlistItem
 
-__all__ = ["User", "Portfolio", "Holding", "Transaction", "WatchlistItem"]
+# Epic 2: Event-sourced domain model
+from backend.models.asset import Asset
+from backend.models.financial_event import FinancialEvent
+from backend.models.import_job import ImportJob
+
+__all__ = [
+    "User",
+    "Portfolio",
+    "Holding",
+    "Transaction",
+    "WatchlistItem",
+    # Epic 2
+    "Asset",
+    "FinancialEvent",
+    "ImportJob",
+]
