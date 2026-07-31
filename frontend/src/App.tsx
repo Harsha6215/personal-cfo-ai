@@ -9,6 +9,7 @@ import { PageSpinner } from "@/components/ui/Spinner";
 const Login      = lazy(() => import("@/pages/Login"));
 const Dashboard  = lazy(() => import("@/pages/Dashboard"));
 const Import     = lazy(() => import("@/pages/Import"));
+const Portfolio  = lazy(() => import("@/pages/Portfolio"));
 const ComingSoon = lazy(() => import("@/pages/ComingSoon"));
 
 export default function App() {
@@ -28,7 +29,7 @@ export default function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/portfolio" element={<ComingSoon />} />
+            <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/import"    element={<Import />} />
             <Route path="/watchlist" element={<ComingSoon />} />
             <Route path="/research"  element={<ComingSoon />} />

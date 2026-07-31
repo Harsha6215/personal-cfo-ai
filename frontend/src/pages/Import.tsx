@@ -48,9 +48,37 @@ export default function Import() {
 
     try {
       const token = getStoredToken();
+
+      // Ensure user has a portfolio (auto-create "My Portfolio" if none exists)
+      let portfolioId = "";
+      const portfolioRes = await fetch("/api/v1/portfolios", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (portfolioRes.ok) {
+        const portfolios = await portfolioRes.json();
+        if (portfolios.length > 0) {
+          portfolioId = portfolios[0].id;
+        } else {
+          // Create default portfolio
+          const createRes = await fetch("/api/v1/portfolios", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ name: "My Portfolio", currency: "INR" }),
+          });
+          if (createRes.ok) {
+            const newPortfolio = await createRes.json();
+            portfolioId = newPortfolio.id;
+          }
+        }
+      }
+
+      if (!portfolioId) {
+        throw new Error("Could not create portfolio. Please try again.");
+      }
+
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("portfolio_id", "default"); // We'll create one if needed
+      formData.append("portfolio_id", portfolioId);
 
       const res = await fetch("/api/v1/import/upload", {
         method: "POST",
@@ -79,9 +107,21 @@ export default function Import() {
 
     try {
       const token = getStoredToken();
+
+      // Get portfolio ID (same logic as preview)
+      const portfolioRes = await fetch("/api/v1/portfolios", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const portfolios = await portfolioRes.json();
+      const portfolioId = portfolios[0]?.id;
+
+      if (!portfolioId) {
+        throw new Error("No portfolio found. Please preview first.");
+      }
+
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("portfolio_id", "default");
+      formData.append("portfolio_id", portfolioId);
 
       const res = await fetch("/api/v1/import/upload-and-import", {
         method: "POST",

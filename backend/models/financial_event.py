@@ -64,7 +64,7 @@ class FinancialEvent(TimestampMixin, Base):
 
     # ── Event data ─────────────────────────────────────────────────────────────
     event_type: Mapped[EventType] = mapped_column(
-        Enum(EventType), nullable=False, index=True
+        Enum(EventType, name="eventtype_enum"), nullable=False, index=True
     )
     quantity: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
     price: Mapped[float] = mapped_column(Numeric(18, 4), nullable=False, default=0)

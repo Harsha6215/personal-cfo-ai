@@ -53,11 +53,11 @@ class ImportJob(TimestampMixin, Base):
 
     # ── Job metadata ───────────────────────────────────────────────────────────
     source: Mapped[ImportSource] = mapped_column(
-        Enum(ImportSource), nullable=False
+        Enum(ImportSource, name="importsource_enum"), nullable=False
     )
     filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[ImportStatus] = mapped_column(
-        Enum(ImportStatus), nullable=False, default=ImportStatus.PENDING
+        Enum(ImportStatus, name="importstatus_enum"), nullable=False, default=ImportStatus.PENDING
     )
 
     # ── Counters ───────────────────────────────────────────────────────────────

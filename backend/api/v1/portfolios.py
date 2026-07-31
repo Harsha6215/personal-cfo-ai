@@ -6,6 +6,8 @@ Portfolios are the top-level container. Holdings are computed from events.
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime
+
 from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +17,7 @@ from backend.core.database import get_db
 from backend.models.portfolio import Portfolio
 from backend.models.financial_event import FinancialEvent, EventType
 from backend.models.user import User
+from backend.services.portfolio_engine import PortfolioEngine
 
 logger = structlog.get_logger(__name__)
 
@@ -27,8 +30,8 @@ class PortfolioResponse(BaseModel):
     id: str
     name: str
     currency: str
-    description: str | None
-    created_at: str
+    description: str | None = None
+    created_at: datetime
 
     model_config = {"from_attributes": True}
 
@@ -154,4 +157,69 @@ async def get_portfolio_summary(
         total_events=total_events,
         total_assets=total_assets,
         total_invested=total_invested,
+    )
+
+
+# ── Holdings (computed from events) ───────────────────────────────────────────
+
+class HoldingComputed(BaseModel):
+    asset_id: str
+    ticker: str
+    name: str
+    asset_type: str
+    quantity: float
+    average_cost: float
+    invested_value: float
+
+
+class HoldingsResponse(BaseModel):
+    portfolio_id: str
+    portfolio_name: str
+    total_invested: float
+    total_holdings: int
+    total_events: int
+    holdings: list[HoldingComputed]
+
+
+@router.get(
+    "/{portfolio_id}/holdings",
+    response_model=HoldingsResponse,
+    summary="Get computed holdings (derived from events)",
+    description="Replays all financial events and returns current positions with cost basis.",
+)
+async def get_portfolio_holdings(
+    portfolio_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    # Verify ownership
+    result = await db.execute(
+        select(Portfolio).where(Portfolio.id == portfolio_id, Portfolio.user_id == user.id)
+    )
+    portfolio = result.scalar_one_or_none()
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
+    # Calculate
+    engine = PortfolioEngine(db)
+    summary = await engine.get_summary(portfolio_id)
+
+    return HoldingsResponse(
+        portfolio_id=portfolio.id,
+        portfolio_name=portfolio.name,
+        total_invested=summary.total_invested,
+        total_holdings=summary.total_holdings,
+        total_events=summary.total_events,
+        holdings=[
+            HoldingComputed(
+                asset_id=h.asset_id,
+                ticker=h.ticker,
+                name=h.name,
+                asset_type=h.asset_type,
+                quantity=h.quantity,
+                average_cost=h.average_cost,
+                invested_value=h.invested_value,
+            )
+            for h in summary.holdings
+        ],
     )

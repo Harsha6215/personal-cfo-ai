@@ -47,13 +47,13 @@ class Asset(TimestampMixin, Base):
     isin: Mapped[str | None] = mapped_column(String(12), unique=True, nullable=True, index=True)
     ticker: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     exchange: Mapped[Exchange] = mapped_column(
-        Enum(Exchange), nullable=False, default=Exchange.NSE
+        Enum(Exchange, name="exchange_enum"), nullable=False, default=Exchange.NSE
     )
 
     # Descriptive
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     asset_type: Mapped[AssetType] = mapped_column(
-        Enum(AssetType), nullable=False, default=AssetType.STOCK
+        Enum(AssetType, name="assettype_v2"), nullable=False, default=AssetType.STOCK
     )
     sector: Mapped[str | None] = mapped_column(String(100), nullable=True)
     industry: Mapped[str | None] = mapped_column(String(100), nullable=True)
