@@ -1,0 +1,48 @@
+name: Deploy (Staging)
+
+on:
+  push:
+    branches: [master, main]
+
+# Only runs after CI passes (separate workflow)
+# In production, add environment protection rules
+
+jobs:
+  deploy:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    # Only deploy from main/master, not PRs
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Uncomment when Docker Hub or GHCR credentials are configured:
+      # - name: Log in to Container Registry
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build backend image
+        run: docker build -f docker/backend.Dockerfile -t personal-cfo-backend:latest .
+
+      - name: Build frontend image
+        run: docker build -f docker/frontend.Dockerfile -t personal-cfo-frontend:latest .
+
+      # Uncomment when registry is configured:
+      # - name: Push images
+      #   run: |
+      #     docker push ghcr.io/${{ github.repository }}/backend:latest
+      #     docker push ghcr.io/${{ github.repository }}/frontend:latest
+
+      - name: Deploy summary
+        run: |
+          echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Backend image built" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Frontend image built" >> $GITHUB_STEP_SUMMARY
+          echo "- 🚧 Push to registry: not configured yet" >> $GITHUB_STEP_SUMMARY
