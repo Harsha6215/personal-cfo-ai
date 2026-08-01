@@ -185,4 +185,8 @@ def _get_orchestrator():
         from ai_services.agents.technical_analyst import TechnicalAnalystAgent
         _orchestrator.register(TechnicalAnalystAgent())
 
+        # Story 4.5: Valuation Agent
+        from ai_services.agents.valuation_agent import ValuationAgent
+        _orchestrator.register(ValuationAgent())
+
     return _orchestrator
