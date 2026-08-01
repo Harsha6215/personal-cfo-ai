@@ -6,8 +6,8 @@ Input: Company News headlines from RSS feeds.
 Output: Overall sentiment, key developments, management outlook.
 """
 
-from ai_services.agents.base import AgentContext, AgentResponse, BaseAgent
-from ai_services.agents.llm import LLMProvider
+from agents.base import AgentContext, AgentResponse, BaseAgent
+from agents.llm import LLMProvider
 
 
 class NewsIntelligenceAgent(BaseAgent):

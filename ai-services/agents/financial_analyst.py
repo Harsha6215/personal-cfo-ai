@@ -8,8 +8,8 @@ Output: Financial Health score, trend indicators, evidence.
 Does NOT give buy/sell recommendations — only financial analysis.
 """
 
-from ai_services.agents.base import AgentContext, AgentResponse, BaseAgent
-from ai_services.agents.llm import LLMProvider
+from agents.base import AgentContext, AgentResponse, BaseAgent
+from agents.llm import LLMProvider
 
 
 class FinancialAnalystAgent(BaseAgent):

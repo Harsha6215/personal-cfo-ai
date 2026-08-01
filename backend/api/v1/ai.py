@@ -18,8 +18,11 @@ from backend.core.auth import get_current_user
 from backend.core.database import get_db
 from backend.models.user import User
 
-# Add ai-services to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai-services"))
+# Add ai-services to path (folder has hyphen — can't import directly as package)
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_AI_SERVICES_PATH = os.path.join(_PROJECT_ROOT, "ai-services")
+if _AI_SERVICES_PATH not in sys.path:
+    sys.path.insert(0, _AI_SERVICES_PATH)
 
 logger = structlog.get_logger(__name__)
 
@@ -63,8 +66,8 @@ class AgentInfo(BaseModel):
     summary="List registered AI agents",
 )
 async def list_agents(user: User = Depends(get_current_user)):
-    from ai_services.agents.orchestrator import AgentOrchestrator
-    from ai_services.agents.llm import MockLLMProvider
+    from agents.orchestrator import AgentOrchestrator
+    from agents.llm import MockLLMProvider
 
     orchestrator = _get_orchestrator()
     return orchestrator.list_agents()
@@ -84,7 +87,7 @@ async def analyze_ticker(
     start = time.perf_counter()
 
     # Build context with market data
-    from ai_services.agents.base import AgentContext
+    from agents.base import AgentContext
 
     context = AgentContext(ticker=ticker.upper(), user_id=user.id)
 
@@ -160,8 +163,8 @@ _orchestrator = None
 def _get_orchestrator():
     global _orchestrator
     if _orchestrator is None:
-        from ai_services.agents.orchestrator import AgentOrchestrator
-        from ai_services.agents.llm import OpenAIProvider, MockLLMProvider
+        from agents.orchestrator import AgentOrchestrator
+        from agents.llm import OpenAIProvider, MockLLMProvider
 
         # Use OpenAI if key available, otherwise mock
         api_key = os.getenv("OPENAI_API_KEY", "")
@@ -174,19 +177,19 @@ def _get_orchestrator():
         _orchestrator = AgentOrchestrator(llm=llm)
 
         # Register the first agent (Financial Analyst — Story 4.2 will add more)
-        from ai_services.agents.financial_analyst import FinancialAnalystAgent
+        from agents.financial_analyst import FinancialAnalystAgent
         _orchestrator.register(FinancialAnalystAgent())
 
         # Story 4.3: News Intelligence Agent
-        from ai_services.agents.news_agent import NewsIntelligenceAgent
+        from agents.news_agent import NewsIntelligenceAgent
         _orchestrator.register(NewsIntelligenceAgent())
 
         # Story 4.4: Technical Analysis Agent
-        from ai_services.agents.technical_analyst import TechnicalAnalystAgent
+        from agents.technical_analyst import TechnicalAnalystAgent
         _orchestrator.register(TechnicalAnalystAgent())
 
         # Story 4.5: Valuation Agent
-        from ai_services.agents.valuation_agent import ValuationAgent
+        from agents.valuation_agent import ValuationAgent
         _orchestrator.register(ValuationAgent())
 
     return _orchestrator

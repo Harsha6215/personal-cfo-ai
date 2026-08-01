@@ -10,8 +10,8 @@ Uses computation FIRST (RSI, MACD, MAs), then LLM to interpret.
 
 from datetime import date, timedelta
 
-from ai_services.agents.base import AgentContext, AgentResponse, BaseAgent
-from ai_services.agents.llm import LLMProvider
+from agents.base import AgentContext, AgentResponse, BaseAgent
+from agents.llm import LLMProvider
 
 
 def _compute_rsi(prices: list[float], period: int = 14) -> float:

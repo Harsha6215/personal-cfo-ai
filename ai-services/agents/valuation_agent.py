@@ -8,8 +8,8 @@ Computes: PE, PB, PEG, EV/EBITDA, Earnings Yield
 Then AI interprets: undervalued/fairly valued/overvalued with reasoning.
 """
 
-from ai_services.agents.base import AgentContext, AgentResponse, BaseAgent
-from ai_services.agents.llm import LLMProvider
+from agents.base import AgentContext, AgentResponse, BaseAgent
+from agents.llm import LLMProvider
 
 
 def _compute_valuation_metrics(quote: dict, company: dict) -> dict:

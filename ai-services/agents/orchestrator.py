@@ -21,8 +21,8 @@ from datetime import datetime, timezone
 
 import structlog
 
-from ai_services.agents.base import AgentContext, AgentResponse, BaseAgent
-from ai_services.agents.llm import LLMProvider
+from agents.base import AgentContext, AgentResponse, BaseAgent
+from agents.llm import LLMProvider
 
 logger = structlog.get_logger(__name__)
 
