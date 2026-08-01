@@ -105,6 +105,9 @@ export default function Dashboard() {
         <p className="mt-1 text-sky-100">Here's your portfolio at a glance.</p>
       </div>
 
+      {/* Market Ticker Strip */}
+      <MarketTicker />
+
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
@@ -183,6 +186,45 @@ export default function Dashboard() {
           ) : <p className="text-sm text-slate-400">Loading…</p>}
         </Card>
       </div>
+    </div>
+  );
+}
+
+
+// ── Market Ticker Strip ───────────────────────────────────────────────────────
+
+function MarketTicker() {
+  const [indicators, setIndicators] = useState<{ key: string; name: string; value: number; change_pct: number; unit: string }[]>([]);
+
+  useEffect(() => {
+    const token = getStoredToken();
+    if (!token) return;
+    fetch("/api/v1/economy", { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setIndicators(d.indicators); })
+      .catch(() => {});
+  }, []);
+
+  if (indicators.length === 0) return null;
+
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-1">
+      {indicators.slice(0, 6).map(ind => {
+        const isPos = ind.change_pct >= 0;
+        return (
+          <div key={ind.key} className="flex-shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+            <p className="text-xs text-slate-500 dark:text-slate-400">{ind.name}</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {ind.unit}{ind.value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+              </span>
+              <span className={`text-xs font-medium ${isPos ? "text-emerald-600" : "text-red-600"}`}>
+                {isPos ? "+" : ""}{ind.change_pct.toFixed(2)}%
+              </span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
