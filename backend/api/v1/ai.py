@@ -116,6 +116,14 @@ async def analyze_ticker(
     if news_articles:
         context.news = [{"title": a.title, "source": a.source, "published": a.published} for a in news_articles]
 
+    # Price history for technical analysis
+    from datetime import date, timedelta
+    end_date = date.today()
+    start_date = end_date - timedelta(days=200)
+    bars = await market.get_history(ticker.upper(), start_date, end_date)
+    if bars:
+        context.price_history = [{"close": b.close, "high": b.high, "low": b.low, "volume": b.volume} for b in bars]
+
     # Run agents
     orchestrator = _get_orchestrator()
     responses = await orchestrator.run_all(context)
@@ -172,5 +180,9 @@ def _get_orchestrator():
         # Story 4.3: News Intelligence Agent
         from ai_services.agents.news_agent import NewsIntelligenceAgent
         _orchestrator.register(NewsIntelligenceAgent())
+
+        # Story 4.4: Technical Analysis Agent
+        from ai_services.agents.technical_analyst import TechnicalAnalystAgent
+        _orchestrator.register(TechnicalAnalystAgent())
 
     return _orchestrator
