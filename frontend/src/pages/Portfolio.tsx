@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Table, Column } from "@/components/ui/Table";
 import { Spinner } from "@/components/ui/Spinner";
@@ -36,10 +37,10 @@ const columns: Column<Holding>[] = [
     key: "ticker",
     header: "Ticker",
     render: (_, row) => (
-      <div>
-        <p className="font-medium text-slate-900 dark:text-slate-100">{row.ticker}</p>
+      <Link to={`/stock/${row.ticker}`} className="block hover:opacity-80">
+        <p className="font-medium text-sky-600 dark:text-sky-400 hover:underline">{row.ticker}</p>
         <p className="text-xs text-slate-500 dark:text-slate-400">{row.name}</p>
-      </div>
+      </Link>
     ),
   },
   { key: "asset_type", header: "Type", width: "70px" },

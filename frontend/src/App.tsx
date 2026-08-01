@@ -11,6 +11,7 @@ const Dashboard     = lazy(() => import("@/pages/Dashboard"));
 const Import        = lazy(() => import("@/pages/Import"));
 const ImportHistory = lazy(() => import("@/pages/ImportHistory"));
 const Portfolio     = lazy(() => import("@/pages/Portfolio"));
+const StockDetail   = lazy(() => import("@/pages/StockDetail"));
 const ComingSoon    = lazy(() => import("@/pages/ComingSoon"));
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
           >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/stock/:ticker" element={<StockDetail />} />
             <Route path="/import"    element={<Import />} />
             <Route path="/imports"   element={<ImportHistory />} />
             <Route path="/watchlist" element={<ComingSoon />} />
