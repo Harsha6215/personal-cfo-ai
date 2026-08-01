@@ -39,3 +39,7 @@ router.include_router(corporate_actions.router, prefix="/corporate-actions")
 router.include_router(news.router, prefix="/news")
 router.include_router(economy.router, prefix="/economy")
 router.include_router(scheduler_api.router, prefix="/scheduler")
+
+# ── Epic 4: AI Intelligence ────────────────────────────────────────────────────
+from backend.api.v1 import ai
+router.include_router(ai.router, prefix="/ai")
