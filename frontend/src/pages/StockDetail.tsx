@@ -193,6 +193,9 @@ export default function StockDetail() {
         </div>
       )}
 
+      {/* Corporate Actions */}
+      <CorporateActionsSection ticker={ticker || ""} />
+
       {/* Financial Statements */}
       <FinancialsSection ticker={ticker || ""} />
     </div>
@@ -292,5 +295,86 @@ function FinancialsSection({ ticker }: { ticker: string }) {
         </div>
       )}
     </Card>
+  );
+}
+
+
+// ── Corporate Actions Section ─────────────────────────────────────────────────
+
+function CorporateActionsSection({ ticker }: { ticker: string }) {
+  const [dividends, setDividends] = useState<{ date: string; amount: number }[]>([]);
+  const [splits, setSplits] = useState<{ date: string; ratio_from: number; ratio_to: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!ticker) return;
+    const token = getStoredToken();
+    fetch(`/api/v1/corporate-actions/${ticker}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d) {
+          setDividends(d.dividends || []);
+          setSplits(d.splits || []);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [ticker]);
+
+  if (loading) return null; // Don't show section while loading
+  if (dividends.length === 0 && splits.length === 0) return null; // No data = hide section
+
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* Dividends */}
+      {dividends.length > 0 && (
+        <Card>
+          <CardHeader title="Dividend History" subtitle={`${dividends.length} dividends`} />
+          <div className="max-h-48 overflow-y-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-700">
+                  <th className="py-2 text-left text-slate-500">Date</th>
+                  <th className="py-2 text-right text-slate-500">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dividends.slice(0, 20).map((d, i) => (
+                  <tr key={i} className="border-b border-slate-100 dark:border-slate-700/50">
+                    <td className="py-1.5 text-slate-700 dark:text-slate-300">
+                      {new Date(d.date).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}
+                    </td>
+                    <td className="py-1.5 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                      ₹{d.amount.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* Splits */}
+      {splits.length > 0 && (
+        <Card>
+          <CardHeader title="Stock Splits" subtitle={`${splits.length} splits`} />
+          <div className="space-y-2">
+            {splits.map((s, i) => (
+              <div key={i} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-700/50">
+                <span className="text-xs text-slate-600 dark:text-slate-300">
+                  {new Date(s.date).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}
+                </span>
+                <span className="font-mono text-sm font-semibold text-sky-600 dark:text-sky-400">
+                  {s.ratio_from}:{s.ratio_to}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
   );
 }
