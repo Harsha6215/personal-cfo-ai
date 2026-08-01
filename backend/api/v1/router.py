@@ -31,9 +31,10 @@ router.include_router(imports.router, prefix="/import")
 router.include_router(reconciliation.router, prefix="/reconciliation")
 
 # ── Epic 3: Market Intelligence ────────────────────────────────────────────────
-from backend.api.v1 import market, prices, financials, corporate_actions, news
+from backend.api.v1 import market, prices, financials, corporate_actions, news, economy
 router.include_router(market.router, prefix="/market")
 router.include_router(prices.router, prefix="/prices")
 router.include_router(financials.router, prefix="/financials")
 router.include_router(corporate_actions.router, prefix="/corporate-actions")
 router.include_router(news.router, prefix="/news")
+router.include_router(economy.router, prefix="/economy")
