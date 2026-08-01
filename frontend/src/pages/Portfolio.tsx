@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Table, Column } from "@/components/ui/Table";
 import { Spinner } from "@/components/ui/Spinner";
+import { PortfolioChart } from "@/components/ui/PortfolioChart";
 import { getStoredToken } from "@/services/auth";
 
 interface Holding {
@@ -246,6 +247,12 @@ export default function Portfolio() {
           </div>
         </Card>
       </div>
+
+      {/* Portfolio performance chart */}
+      <Card>
+        <CardHeader title="Portfolio Performance" subtitle="Total portfolio value over time" />
+        <PortfolioChart days={365} />
+      </Card>
 
       {/* Holdings table */}
       <Card>
