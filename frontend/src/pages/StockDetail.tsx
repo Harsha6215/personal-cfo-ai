@@ -193,6 +193,9 @@ export default function StockDetail() {
         </div>
       )}
 
+      {/* News */}
+      <NewsSection ticker={ticker || ""} companyName={company?.name || ticker || ""} />
+
       {/* Corporate Actions */}
       <CorporateActionsSection ticker={ticker || ""} />
 
@@ -376,5 +379,60 @@ function CorporateActionsSection({ ticker }: { ticker: string }) {
         </Card>
       )}
     </div>
+  );
+}
+
+
+// ── News Section ──────────────────────────────────────────────────────────────
+
+function NewsSection({ ticker, companyName }: { ticker: string; companyName: string }) {
+  const [articles, setArticles] = useState<{ title: string; url: string; source: string; published: string; summary: string | null }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!ticker) return;
+    const token = getStoredToken();
+    const query = companyName && companyName !== ticker ? companyName : ticker;
+    fetch(`/api/v1/news?q=${encodeURIComponent(query)}&limit=5`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(setArticles)
+      .catch(() => setArticles([]))
+      .finally(() => setLoading(false));
+  }, [ticker, companyName]);
+
+  if (loading) return null;
+  if (articles.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader title="Latest News" subtitle={`Recent news about ${ticker}`} />
+      <div className="space-y-3">
+        {articles.map((article, i) => (
+          <a
+            key={i}
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-lg border border-slate-100 p-3 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50"
+          >
+            <p className="text-sm font-medium text-slate-900 dark:text-slate-100 line-clamp-2">
+              {article.title}
+            </p>
+            {article.summary && (
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                {article.summary}
+              </p>
+            )}
+            <div className="mt-2 flex items-center gap-3 text-xs text-slate-400">
+              <span>{article.source}</span>
+              <span>•</span>
+              <span>{article.published ? new Date(article.published).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : ""}</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </Card>
   );
 }
