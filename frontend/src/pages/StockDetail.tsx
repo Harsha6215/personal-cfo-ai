@@ -53,6 +53,25 @@ export default function StockDetail() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [aiResult, setAiResult] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const runAIAnalysis = async () => {
+    if (!ticker) return;
+    setAiLoading(true);
+    setAiResult(null);
+    try {
+      const token = getStoredToken();
+      const res = await fetch(`/api/v1/ai/analyze/${ticker}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setAiResult(await res.json());
+      }
+    } catch { /* ignore */ }
+    finally { setAiLoading(false); }
+  };
 
   useEffect(() => {
     if (!ticker) return;
@@ -104,10 +123,60 @@ export default function StockDetail() {
             {company?.name || ticker} • {company?.industry || ""}
           </p>
         </div>
-        <Link to="/portfolio" className="btn-secondary text-sm">
-          ← Back to Portfolio
-        </Link>
+        <div className="flex gap-2">
+          <button
+            onClick={() => runAIAnalysis()}
+            className="btn-primary text-sm"
+          >
+            🤖 AI Analyze
+          </button>
+          <Link to="/portfolio" className="btn-secondary text-sm">
+            ← Portfolio
+          </Link>
+        </div>
       </div>
+
+      {/* AI Analysis Result */}
+      {aiLoading && (
+        <Card>
+          <div className="flex items-center gap-3 py-4">
+            <Spinner size="md" />
+            <p className="text-sm text-slate-500">AI Investment Committee is analyzing {ticker}…</p>
+          </div>
+        </Card>
+      )}
+      {aiResult && !aiLoading && (
+        <Card>
+          <CardHeader title="🤖 AI Investment Committee" subtitle={`Analysis completed in ${aiResult.total_time_ms}ms`} />
+          <div className="space-y-4">
+            {aiResult.analyses.map((a: any, i: number) => (
+              <div key={i} className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-slate-900 dark:text-slate-100">{a.agent_role}</p>
+                    <p className="text-xs text-slate-500">{a.agent_name}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {a.score && <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">{a.score}/10</span>}
+                    {a.sentiment && <span className={`badge ${a.sentiment === 'positive' ? 'badge-green' : a.sentiment === 'negative' ? 'badge-red' : 'badge-yellow'}`}>{a.sentiment}</span>}
+                    <span className="text-xs text-slate-400">{a.confidence}% confidence</span>
+                  </div>
+                </div>
+                <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">{a.analysis}</p>
+                {a.evidence.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {a.evidence.map((e: string, j: number) => (
+                      <span key={j} className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-700 dark:text-slate-400">
+                        {e}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Price + Quote */}
       {quote && (
