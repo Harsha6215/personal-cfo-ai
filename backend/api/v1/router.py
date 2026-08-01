@@ -24,7 +24,8 @@ from backend.api.v1 import auth
 router.include_router(auth.router, prefix="/auth")
 
 # ── Epic 2: Portfolio & Assets ─────────────────────────────────────────────────
-from backend.api.v1 import portfolios, assets, imports
+from backend.api.v1 import portfolios, assets, imports, reconciliation
 router.include_router(portfolios.router, prefix="/portfolios")
 router.include_router(assets.router, prefix="/assets")
 router.include_router(imports.router, prefix="/import")
+router.include_router(reconciliation.router, prefix="/reconciliation")

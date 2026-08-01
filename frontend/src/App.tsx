@@ -6,11 +6,12 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { PageSpinner } from "@/components/ui/Spinner";
 
 // Lazy-load pages — keeps initial bundle small
-const Login      = lazy(() => import("@/pages/Login"));
-const Dashboard  = lazy(() => import("@/pages/Dashboard"));
-const Import     = lazy(() => import("@/pages/Import"));
-const Portfolio  = lazy(() => import("@/pages/Portfolio"));
-const ComingSoon = lazy(() => import("@/pages/ComingSoon"));
+const Login         = lazy(() => import("@/pages/Login"));
+const Dashboard     = lazy(() => import("@/pages/Dashboard"));
+const Import        = lazy(() => import("@/pages/Import"));
+const ImportHistory = lazy(() => import("@/pages/ImportHistory"));
+const Portfolio     = lazy(() => import("@/pages/Portfolio"));
+const ComingSoon    = lazy(() => import("@/pages/ComingSoon"));
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/import"    element={<Import />} />
+            <Route path="/imports"   element={<ImportHistory />} />
             <Route path="/watchlist" element={<ComingSoon />} />
             <Route path="/research"  element={<ComingSoon />} />
             <Route path="/advisor"   element={<ComingSoon />} />
