@@ -169,4 +169,8 @@ def _get_orchestrator():
         from ai_services.agents.financial_analyst import FinancialAnalystAgent
         _orchestrator.register(FinancialAnalystAgent())
 
+        # Story 4.3: News Intelligence Agent
+        from ai_services.agents.news_agent import NewsIntelligenceAgent
+        _orchestrator.register(NewsIntelligenceAgent())
+
     return _orchestrator
