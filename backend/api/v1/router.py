@@ -43,3 +43,7 @@ router.include_router(scheduler_api.router, prefix="/scheduler")
 # ── Epic 4: AI Intelligence ────────────────────────────────────────────────────
 from backend.api.v1 import ai
 router.include_router(ai.router, prefix="/ai")
+
+# ── Epic 5: Decision Intelligence ──────────────────────────────────────────────
+from backend.api.v1 import decisions
+router.include_router(decisions.router, prefix="/decisions")
