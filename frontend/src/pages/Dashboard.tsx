@@ -1,114 +1,186 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
+import { PortfolioChart } from "@/components/ui/PortfolioChart";
+import { getStoredToken } from "@/services/auth";
 
-interface BackendStatus {
-  status: "checking" | "ok" | "error";
-  version?: string;
+interface Holding {
+  ticker: string;
+  name: string;
+  quantity: number;
+  average_cost: number;
+  invested_value: number;
+  current_price?: number;
+  current_value?: number;
+  pnl?: number;
+  pnl_pct?: number;
 }
 
-// Metric card component — placeholder until Epic 2
-function MetricCard({
-  label, value, change, icon
-}: {
-  label: string;
-  value: string;
-  change?: string;
-  positive?: boolean;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="card flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 text-sky-500 dark:bg-sky-900/30">
-          {icon}
-        </div>
-      </div>
-      <div>
-        <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
-        {change && (
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{change}</p>
-        )}
-      </div>
-    </div>
-  );
-}
+const formatINR = (val: number) => `₹${val.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
 export default function Dashboard() {
-  const [backend, setBackend] = useState<BackendStatus>({ status: "checking" });
+  const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [totalInvested, setTotalInvested] = useState(0);
+  const [totalCurrent, setTotalCurrent] = useState<number | null>(null);
+  const [totalPnl, setTotalPnl] = useState<number | null>(null);
+  const [holdingsCount, setHoldingsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("there");
 
   useEffect(() => {
-    fetch("/api/v1/health")
-      .then((r) => r.json())
-      .then(() =>
-        fetch("/api/v1/version")
-          .then((r) => r.json())
-          .then((v) => setBackend({ status: "ok", version: v.version }))
-      )
-      .catch(() => setBackend({ status: "error" }));
+    const user = localStorage.getItem("user");
+    if (user) {
+      const u = JSON.parse(user);
+      setUserName(u.full_name?.split(" ")[0] || u.email?.split("@")[0] || "there");
+    }
+
+    async function fetchData() {
+      const token = getStoredToken();
+      if (!token) { setLoading(false); return; }
+
+      try {
+        // Get portfolios
+        const portfolioRes = await fetch("/api/v1/portfolios", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!portfolioRes.ok) { setLoading(false); return; }
+        const portfolios = await portfolioRes.json();
+        if (portfolios.length === 0) { setLoading(false); return; }
+
+        // Get holdings
+        const holdingsRes = await fetch(`/api/v1/portfolios/${portfolios[0].id}/holdings`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!holdingsRes.ok) { setLoading(false); return; }
+        const data = await holdingsRes.json();
+
+        setTotalInvested(data.total_invested);
+        setHoldingsCount(data.total_holdings);
+        setHoldings(data.holdings);
+        setLoading(false);
+
+        // Fetch live prices
+        let cv = 0, pl = 0;
+        const updated = [...data.holdings];
+        for (let i = 0; i < updated.length; i++) {
+          try {
+            const qRes = await fetch(`/api/v1/market/quote/${updated[i].ticker}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (qRes.ok) {
+              const q = await qRes.json();
+              const currentValue = q.price * updated[i].quantity;
+              const pnl = currentValue - updated[i].invested_value;
+              updated[i] = { ...updated[i], current_price: q.price, current_value: currentValue, pnl, pnl_pct: (pnl / updated[i].invested_value) * 100 };
+              cv += currentValue;
+              pl += pnl;
+            }
+          } catch { /* skip */ }
+        }
+        setHoldings(updated);
+        setTotalCurrent(Math.round(cv));
+        setTotalPnl(Math.round(pl));
+      } catch {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
   }, []);
+
+  if (loading) {
+    return <div className="flex h-64 items-center justify-center"><Spinner size="lg" /></div>;
+  }
+
+  const pnlPositive = (totalPnl ?? 0) >= 0;
+  const topGainers = [...holdings].filter(h => h.pnl !== undefined).sort((a, b) => (b.pnl_pct ?? 0) - (a.pnl_pct ?? 0)).slice(0, 3);
+  const topLosers = [...holdings].filter(h => h.pnl !== undefined).sort((a, b) => (a.pnl_pct ?? 0) - (b.pnl_pct ?? 0)).slice(0, 3);
 
   return (
     <div className="space-y-6">
-      {/* Welcome banner */}
+      {/* Welcome */}
       <div className="rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 p-6 text-white shadow-sm">
-        <h2 className="text-xl font-bold">Welcome to Personal CFO AI 👋</h2>
-        <p className="mt-1 text-sky-100">
-          Epic 1 · Foundation — platform is ready. Portfolio features coming in Epic 2.
-        </p>
-        <div className="mt-3 flex items-center gap-2">
-          <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium">
-            {backend.status === "checking" && <Spinner size="sm" className="text-white" />}
-            {backend.status === "ok" && <span className="h-2 w-2 rounded-full bg-emerald-300" />}
-            {backend.status === "error" && <span className="h-2 w-2 rounded-full bg-red-300" />}
-            Backend {backend.status === "ok" ? `v${backend.version}` : backend.status}
-          </span>
-        </div>
+        <h2 className="text-xl font-bold">Hi {userName} 👋</h2>
+        <p className="mt-1 text-sky-100">Here's your portfolio at a glance.</p>
       </div>
 
-      {/* Metric cards — placeholder data */}
+      {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Total Portfolio"
-          value="—"
-          change="Connect your portfolio in Epic 2"
-          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-        />
-        <MetricCard
-          label="Today's P&L"
-          value="—"
-          change="Market data in Epic 3"
-          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
-        />
-        <MetricCard
-          label="Active Goals"
-          value="—"
-          change="Set your goals in Epic 7"
-          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-        />
-        <MetricCard
-          label="AI Insights"
-          value="—"
-          change="AI agents in Epic 4"
-          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>}
-        />
+        <Card>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Total Invested</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">{formatINR(totalInvested)}</p>
+        </Card>
+        <Card>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Current Value</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {totalCurrent !== null ? formatINR(totalCurrent) : <Spinner size="sm" />}
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Total P&L</p>
+          {totalPnl !== null ? (
+            <>
+              <p className={`mt-1 text-2xl font-bold ${pnlPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                {pnlPositive ? "+" : ""}{formatINR(totalPnl)}
+              </p>
+              <p className={`text-xs ${pnlPositive ? "text-emerald-500" : "text-red-500"}`}>
+                {pnlPositive ? "+" : ""}{totalInvested > 0 ? ((totalPnl / totalInvested) * 100).toFixed(2) : 0}%
+              </p>
+            </>
+          ) : <Spinner size="sm" />}
+        </Card>
+        <Card>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Holdings</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">{holdingsCount}</p>
+          <Link to="/portfolio" className="text-xs text-sky-500 hover:text-sky-400">View all →</Link>
+        </Card>
       </div>
 
-      {/* Two-column section */}
+      {/* Portfolio chart */}
+      <Card>
+        <CardHeader title="Portfolio Performance" subtitle="1 year" />
+        <PortfolioChart days={365} />
+      </Card>
+
+      {/* Top gainers / losers */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Recent Transactions" subtitle="Your latest portfolio activity" />
-          <div className="flex h-32 items-center justify-center">
-            <p className="text-sm text-slate-400">Transactions will appear here in Epic 2</p>
-          </div>
+          <CardHeader title="Top Gainers" subtitle="By return %" />
+          {topGainers.length > 0 ? (
+            <div className="space-y-3">
+              {topGainers.map(h => (
+                <Link to={`/stock/${h.ticker}`} key={h.ticker} className="flex items-center justify-between rounded-lg p-2 hover:bg-slate-50 dark:hover:bg-slate-700">
+                  <div>
+                    <p className="font-medium text-slate-900 dark:text-slate-100">{h.ticker}</p>
+                    <p className="text-xs text-slate-500">{h.name}</p>
+                  </div>
+                  <span className="font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                    +{h.pnl_pct?.toFixed(1)}%
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : <p className="text-sm text-slate-400">Loading…</p>}
         </Card>
 
         <Card>
-          <CardHeader title="Watchlist" subtitle="Stocks you're tracking" />
-          <div className="flex h-32 items-center justify-center">
-            <p className="text-sm text-slate-400">Watchlist will appear here in Epic 2</p>
-          </div>
+          <CardHeader title="Top Losers" subtitle="By return %" />
+          {topLosers.length > 0 ? (
+            <div className="space-y-3">
+              {topLosers.map(h => (
+                <Link to={`/stock/${h.ticker}`} key={h.ticker} className="flex items-center justify-between rounded-lg p-2 hover:bg-slate-50 dark:hover:bg-slate-700">
+                  <div>
+                    <p className="font-medium text-slate-900 dark:text-slate-100">{h.ticker}</p>
+                    <p className="text-xs text-slate-500">{h.name}</p>
+                  </div>
+                  <span className="font-mono text-sm font-semibold text-red-600 dark:text-red-400">
+                    {h.pnl_pct?.toFixed(1)}%
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : <p className="text-sm text-slate-400">Loading…</p>}
         </Card>
       </div>
     </div>
