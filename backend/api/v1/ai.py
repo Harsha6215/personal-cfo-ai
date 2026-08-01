@@ -192,4 +192,12 @@ def _get_orchestrator():
         from agents.valuation_agent import ValuationAgent
         _orchestrator.register(ValuationAgent())
 
+        # Story 4.6: Macro Economist Agent
+        from agents.macro_agent import MacroEconomistAgent
+        _orchestrator.register(MacroEconomistAgent())
+
+        # Story 4.7: Risk Manager Agent
+        from agents.risk_agent import RiskManagerAgent
+        _orchestrator.register(RiskManagerAgent())
+
     return _orchestrator
