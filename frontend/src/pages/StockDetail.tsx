@@ -192,6 +192,105 @@ export default function StockDetail() {
           </Card>
         </div>
       )}
+
+      {/* Financial Statements */}
+      <FinancialsSection ticker={ticker || ""} />
     </div>
+  );
+}
+
+
+// ── Financials Section ────────────────────────────────────────────────────────
+
+function FinancialsSection({ ticker }: { ticker: string }) {
+  const [data, setData] = useState<{ period_date: string; data: Record<string, number> }[]>([]);
+  const [stmtType, setStmtType] = useState<"income" | "balance" | "cashflow">("income");
+  const [period, setPeriod] = useState<"quarterly" | "annual">("quarterly");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!ticker) return;
+    setLoading(true);
+    const token = getStoredToken();
+    fetch(`/api/v1/financials/${ticker}?type=${stmtType}&period=${period}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setData(d.statements); else setData([]); })
+      .catch(() => setData([]))
+      .finally(() => setLoading(false));
+  }, [ticker, stmtType, period]);
+
+  const formatNum = (n: number) => {
+    if (Math.abs(n) >= 1e7) return `₹${(n / 1e7).toFixed(1)} Cr`;
+    if (Math.abs(n) >= 1e5) return `₹${(n / 1e5).toFixed(1)} L`;
+    return `₹${n.toLocaleString("en-IN")}`;
+  };
+
+  // Get top 8 line items from first period
+  const lineItems = data.length > 0
+    ? Object.keys(data[0].data).slice(0, 10)
+    : [];
+
+  return (
+    <Card>
+      <CardHeader title="Financial Statements" subtitle="Quarterly and annual data from Yahoo Finance" />
+
+      {/* Tabs */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {(["income", "balance", "cashflow"] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => setStmtType(t)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium ${stmtType === t ? "bg-sky-500 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"}`}
+          >
+            {t === "income" ? "Income" : t === "balance" ? "Balance Sheet" : "Cash Flow"}
+          </button>
+        ))}
+        <span className="mx-2 text-slate-300">|</span>
+        {(["quarterly", "annual"] as const).map(p => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium ${period === p ? "bg-sky-500 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"}`}
+          >
+            {p.charAt(0).toUpperCase() + p.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex h-32 items-center justify-center"><Spinner size="md" /></div>
+      ) : data.length === 0 ? (
+        <p className="text-sm text-slate-400 py-8 text-center">No financial data available for {ticker}.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <th className="py-2 pr-4 text-left font-medium text-slate-500">Line Item</th>
+                {data.slice(0, 4).map(d => (
+                  <th key={d.period_date} className="py-2 px-2 text-right font-medium text-slate-500">
+                    {new Date(d.period_date).toLocaleDateString("en-IN", { month: "short", year: "2-digit" })}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {lineItems.map(item => (
+                <tr key={item} className="border-b border-slate-100 dark:border-slate-700/50">
+                  <td className="py-2 pr-4 text-slate-700 dark:text-slate-300 truncate max-w-[200px]">{item}</td>
+                  {data.slice(0, 4).map(d => (
+                    <td key={d.period_date} className="py-2 px-2 text-right font-mono text-slate-600 dark:text-slate-400">
+                      {d.data[item] !== undefined ? formatNum(d.data[item]) : "—"}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
   );
 }
