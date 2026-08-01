@@ -29,3 +29,7 @@ router.include_router(portfolios.router, prefix="/portfolios")
 router.include_router(assets.router, prefix="/assets")
 router.include_router(imports.router, prefix="/import")
 router.include_router(reconciliation.router, prefix="/reconciliation")
+
+# ── Epic 3: Market Intelligence ────────────────────────────────────────────────
+from backend.api.v1 import market
+router.include_router(market.router, prefix="/market")
