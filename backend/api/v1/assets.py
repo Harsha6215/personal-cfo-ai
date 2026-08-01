@@ -119,3 +119,60 @@ async def get_asset(
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     return asset
+
+
+# ── Enrichment endpoints ───────────────────────────────────────────────────────
+
+from backend.services.market_data import MarketDataService, YahooFinanceProvider
+from backend.services.asset_enrichment import AssetEnrichmentService
+
+_market_service = MarketDataService(provider=YahooFinanceProvider())
+
+
+@router.post(
+    "/{asset_id}/enrich",
+    response_model=AssetResponse,
+    summary="Enrich an asset with market data",
+    description="Fetches sector, industry, ISIN, and other details from Yahoo Finance.",
+)
+async def enrich_asset(
+    asset_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    service = AssetEnrichmentService(db, _market_service)
+    asset = await service.enrich_asset(asset_id)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return asset
+
+
+@router.post(
+    "/enrich-all",
+    summary="Enrich all assets missing sector/industry",
+    description="Batch enrichment — fetches data for all unenriched assets.",
+)
+async def enrich_all_assets(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    service = AssetEnrichmentService(db, _market_service)
+    count = await service.enrich_all_unenriched()
+    return {"enriched": count, "message": f"Enriched {count} assets"}
+
+
+@router.get(
+    "/ticker/{ticker}",
+    response_model=AssetResponse,
+    summary="Get asset by ticker",
+)
+async def get_asset_by_ticker(
+    ticker: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Asset).where(Asset.ticker == ticker.upper()).limit(1))
+    asset = result.scalar_one_or_none()
+    if not asset:
+        raise HTTPException(status_code=404, detail=f"Asset {ticker} not found")
+    return asset
