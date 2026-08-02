@@ -13,13 +13,14 @@ from pydantic import BaseModel
 from backend.core.auth import get_current_user
 from backend.models.user import User
 from backend.services.market_data import MarketDataService, YahooFinanceProvider
+from backend.services.market_data.factory import get_market_service as create_market_service
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(tags=["Market Data"])
 
-# Singleton service instance
-_market_service = MarketDataService(provider=YahooFinanceProvider())
+# Singleton service instance — NSE primary, Yahoo fallback
+_market_service = create_market_service()
 
 
 def get_market_service() -> MarketDataService:

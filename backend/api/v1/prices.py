@@ -15,13 +15,14 @@ from backend.core.database import get_db
 from backend.models.portfolio import Portfolio
 from backend.models.user import User
 from backend.services.market_data import MarketDataService, YahooFinanceProvider
+from backend.services.market_data.factory import get_market_service as create_market_service
 from backend.services.portfolio_engine import PortfolioEngine
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(tags=["Prices"])
 
-_market_service = MarketDataService(provider=YahooFinanceProvider())
+_market_service = create_market_service()
 
 
 class PricePoint(BaseModel):

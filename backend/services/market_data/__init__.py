@@ -21,6 +21,7 @@ from backend.services.market_data.provider import (
 )
 from backend.services.market_data.service import MarketDataService
 from backend.services.market_data.yahoo_provider import YahooFinanceProvider
+from backend.services.market_data.nse_provider import NSEProvider
 
 __all__ = [
     "IMarketDataProvider",
@@ -29,4 +30,5 @@ __all__ = [
     "CompanyInfo",
     "MarketDataService",
     "YahooFinanceProvider",
+    "NSEProvider",
 ]
