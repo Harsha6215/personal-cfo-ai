@@ -57,9 +57,14 @@ async def get_current_user(
 
     # Check token blacklist (logout invalidation)
     if jti:
-        from backend.services.token_blacklist import is_token_blacklisted
-        if await is_token_blacklisted(jti):
-            raise credentials_exception
+        try:
+            from backend.services.token_blacklist import is_token_blacklisted
+            if await is_token_blacklisted(jti):
+                raise credentials_exception
+        except HTTPException:
+            raise
+        except Exception:
+            pass  # Fail open if blacklist check fails
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()

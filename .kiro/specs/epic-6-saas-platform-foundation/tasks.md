@@ -45,7 +45,7 @@
 - [x] 32. Build `DoctorResult.tsx` — AI Portfolio Doctor results page showing allocation pie chart, risk score gauge, concerns list, quick-win recommendations
 - [x] 33. Integrate onboarding with existing import system — reuse `POST /api/v1/import/upload` during onboarding upload step
 - [x] 34. Add onboarding redirect logic: if user has no completed profile, redirect to `/onboarding` after login
-- [ ] 35. Update Dashboard to personalize content based on user profile (risk appetite → card ordering, alerts priority)
+- [x] 35. Update Dashboard to personalize content based on user profile (risk appetite → card ordering, alerts priority)
 
 ## Sprint 6.5 — Monitoring & Admin Portal
 

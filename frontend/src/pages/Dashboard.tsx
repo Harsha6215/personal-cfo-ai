@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [holdingsCount, setHoldingsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("there");
+  const [profile, setProfile] = useState<{ risk_appetite: string | null; primary_goals: string[] | null; onboarding_completed_at: string | null } | null>(null);
 
   useEffect(() => {
     const user = localStorage.getItem("user");
@@ -38,6 +39,16 @@ export default function Dashboard() {
     async function fetchData() {
       const token = getStoredToken();
       if (!token) { setLoading(false); return; }
+
+      // Fetch onboarding profile for personalization
+      try {
+        const profileRes = await fetch("/api/v1/onboarding/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (profileRes.ok) {
+          setProfile(await profileRes.json());
+        }
+      } catch { /* ignore */ }
 
       try {
         // Get portfolios
@@ -97,13 +108,40 @@ export default function Dashboard() {
   const topGainers = [...holdings].filter(h => h.pnl !== undefined).sort((a, b) => (b.pnl_pct ?? 0) - (a.pnl_pct ?? 0)).slice(0, 3);
   const topLosers = [...holdings].filter(h => h.pnl !== undefined).sort((a, b) => (a.pnl_pct ?? 0) - (b.pnl_pct ?? 0)).slice(0, 3);
 
+  // Personalization: derive subtitle and quick actions from profile
+  const riskLabel = profile?.risk_appetite === "CONSERVATIVE" ? "Capital preservation focused"
+    : profile?.risk_appetite === "AGGRESSIVE" || profile?.risk_appetite === "VERY_AGGRESSIVE" ? "Growth focused"
+    : "Balanced growth strategy";
+
+  const quickActions = getQuickActions(profile?.primary_goals || []);
+
   return (
     <div className="space-y-6">
       {/* Welcome */}
       <div className="rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 p-6 text-white shadow-sm">
         <h2 className="text-xl font-bold">Hi {userName} 👋</h2>
-        <p className="mt-1 text-sky-100">Here's your portfolio at a glance.</p>
+        <p className="mt-1 text-sky-100">
+          {profile?.onboarding_completed_at
+            ? `${riskLabel} · Here's your portfolio at a glance.`
+            : "Here's your portfolio at a glance."}
+        </p>
       </div>
+
+      {/* Personalized Quick Actions */}
+      {quickActions.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {quickActions.map((action) => (
+            <Link
+              key={action.to}
+              to={action.to}
+              className="flex-shrink-0 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm transition-colors hover:border-sky-300 hover:bg-sky-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-sky-600 dark:hover:bg-slate-700"
+            >
+              <span>{action.icon}</span>
+              <span className="text-slate-700 dark:text-slate-300">{action.label}</span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Market Ticker Strip */}
       <MarketTicker />
@@ -227,4 +265,34 @@ function MarketTicker() {
       })}
     </div>
   );
+}
+
+
+// ── Personalization helpers ───────────────────────────────────────────────────
+
+function getQuickActions(goals: string[]): { icon: string; label: string; to: string }[] {
+  const actions: { icon: string; label: string; to: string }[] = [];
+
+  // Always show these core actions
+  actions.push({ icon: "📊", label: "AI Advisor", to: "/advisor" });
+
+  // Goal-based actions
+  if (goals.includes("WEALTH_GROWTH") || goals.includes("FINANCIAL_FREEDOM")) {
+    actions.push({ icon: "🎯", label: "Opportunities", to: "/research" });
+  }
+  if (goals.includes("PASSIVE_INCOME")) {
+    actions.push({ icon: "💸", label: "Dividend Picks", to: "/research" });
+  }
+  if (goals.includes("TAX_SAVING")) {
+    actions.push({ icon: "💰", label: "Tax Planning", to: "/goals" });
+  }
+  if (goals.includes("RETIREMENT") || goals.includes("CHILDREN_EDUCATION") || goals.includes("HOME_PURCHASE")) {
+    actions.push({ icon: "🎯", label: "Goal Tracker", to: "/goals" });
+  }
+
+  // Always have watchlist and import
+  actions.push({ icon: "👁️", label: "Watchlist", to: "/watchlist" });
+  actions.push({ icon: "📥", label: "Import", to: "/import" });
+
+  return actions.slice(0, 5); // Max 5 actions
 }
