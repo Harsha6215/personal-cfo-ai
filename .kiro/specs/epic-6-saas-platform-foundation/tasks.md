@@ -37,14 +37,14 @@
 
 ## Sprint 6.4 — User Onboarding
 
-- [ ] 27. Create `backend/models/user_profile.py` — UserProfile model with risk_appetite, investment_horizon, monthly_income, age, primary_goals, experience_level, onboarding_step, onboarding_completed_at
-- [ ] 28. Create Alembic migration for `user_profiles` table
-- [ ] 29. Create `backend/api/v1/onboarding.py` — CRUD endpoints for user profile (GET, PUT) and onboarding progress tracking
-- [ ] 30. Build frontend `Onboarding.tsx` — multi-step wizard with animated transitions: Welcome → Risk → Goals → Income/Age → Upload → Portfolio Doctor
-- [ ] 31. Build onboarding step components: `RiskStep.tsx`, `GoalsStep.tsx`, `ProfileStep.tsx`, `UploadStep.tsx`
-- [ ] 32. Build `DoctorResult.tsx` — AI Portfolio Doctor results page showing allocation pie chart, risk score gauge, concerns list, quick-win recommendations
-- [ ] 33. Integrate onboarding with existing import system — reuse `POST /api/v1/import/upload` during onboarding upload step
-- [ ] 34. Add onboarding redirect logic: if user has no completed profile, redirect to `/onboarding` after login
+- [x] 27. Create `backend/models/user_profile.py` — UserProfile model with risk_appetite, investment_horizon, monthly_income, age, primary_goals, experience_level, onboarding_step, onboarding_completed_at
+- [x] 28. Create Alembic migration for `user_profiles` table
+- [x] 29. Create `backend/api/v1/onboarding.py` — CRUD endpoints for user profile (GET, PUT) and onboarding progress tracking
+- [x] 30. Build frontend `Onboarding.tsx` — multi-step wizard with animated transitions: Welcome → Risk → Goals → Income/Age → Upload → Portfolio Doctor
+- [x] 31. Build onboarding step components: `RiskStep.tsx`, `GoalsStep.tsx`, `ProfileStep.tsx`, `UploadStep.tsx`
+- [x] 32. Build `DoctorResult.tsx` — AI Portfolio Doctor results page showing allocation pie chart, risk score gauge, concerns list, quick-win recommendations
+- [x] 33. Integrate onboarding with existing import system — reuse `POST /api/v1/import/upload` during onboarding upload step
+- [x] 34. Add onboarding redirect logic: if user has no completed profile, redirect to `/onboarding` after login
 - [ ] 35. Update Dashboard to personalize content based on user profile (risk appetite → card ordering, alerts priority)
 
 ## Sprint 6.5 — Monitoring & Admin Portal

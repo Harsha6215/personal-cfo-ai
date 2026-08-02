@@ -7,6 +7,7 @@ import { PageSpinner } from "@/components/ui/Spinner";
 
 // Lazy-load pages — keeps initial bundle small
 const Login         = lazy(() => import("@/pages/Login"));
+const Onboarding    = lazy(() => import("@/pages/Onboarding"));
 const Dashboard     = lazy(() => import("@/pages/Dashboard"));
 const Import        = lazy(() => import("@/pages/Import"));
 const ImportHistory = lazy(() => import("@/pages/ImportHistory"));
@@ -25,6 +26,7 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
+          <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
 
           {/* Protected app shell — all authenticated routes nest inside */}
           <Route

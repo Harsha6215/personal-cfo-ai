@@ -68,7 +68,7 @@ export default function Login() {
         await register(email, password, fullName || undefined);
         toast("Account created! Logging you in…", "success");
         await login(email, password);
-        navigate("/dashboard");
+        navigate("/onboarding");
       } else if (mode === "otp-request") {
         await requestOTP(email);
         toast("OTP sent to your email (check server logs in dev)", "success");
@@ -76,17 +76,36 @@ export default function Login() {
       } else if (mode === "otp-verify") {
         await verifyOTP(email, otp);
         toast("Welcome to Personal CFO AI", "success");
-        navigate("/dashboard");
+        await checkOnboardingAndRedirect();
       } else {
         await login(email, password);
         toast("Welcome to Personal CFO AI", "success");
-        navigate("/dashboard");
+        await checkOnboardingAndRedirect();
       }
     } catch (err: any) {
       toast(err.message || "Authentication failed", "error");
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkOnboardingAndRedirect = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const res = await fetch("/api/v1/onboarding/status", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const status = await res.json();
+        if (!status.completed) {
+          navigate("/onboarding");
+          return;
+        }
+      }
+    } catch {
+      // If check fails, just go to dashboard
+    }
+    navigate("/dashboard");
   };
 
   return (

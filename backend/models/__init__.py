@@ -13,6 +13,9 @@ from backend.models.import_job import ImportJob
 # Epic 5: Decision Intelligence
 from backend.models.decision_history import DecisionRecord
 
+# Epic 6: SaaS Platform
+from backend.models.user_profile import UserProfile
+
 __all__ = [
     "User",
     "UserRole",
@@ -26,4 +29,6 @@ __all__ = [
     "ImportJob",
     # Epic 5
     "DecisionRecord",
+    # Epic 6
+    "UserProfile",
 ]
