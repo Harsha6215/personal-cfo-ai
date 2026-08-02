@@ -59,3 +59,7 @@ router.include_router(watchlist_intel.router, prefix="/decisions")
 router.include_router(alerts.router, prefix="/decisions")
 router.include_router(decision_history.router, prefix="/decisions")
 router.include_router(cio_report.router, prefix="/decisions")
+
+# ── Epic 6: Admin / Monitoring ─────────────────────────────────────────────────
+from backend.api.v1 import admin
+router.include_router(admin.router, prefix="/admin")

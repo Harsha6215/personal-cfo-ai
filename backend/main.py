@@ -21,12 +21,35 @@ from backend.core.config import settings
 from backend.core.exceptions import AppError, app_error_handler, unhandled_error_handler
 from backend.core.logging import setup_logging
 from backend.middleware.logging import AccessLogMiddleware
+from backend.middleware.metrics import MetricsMiddleware
 from backend.middleware.rate_limit import RateLimitMiddleware
 from backend.middleware.request_id import RequestIDMiddleware
 
 # ── 1. Logging ─────────────────────────────────────────────────────────────────
 setup_logging(log_level=settings.LOG_LEVEL, json_logs=settings.LOG_JSON)
 logger = structlog.get_logger(__name__)
+
+# ── 1b. Sentry (only in non-local environments with DSN configured) ───────────
+if settings.SENTRY_DSN and settings.APP_ENV != "local":
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.starlette import StarletteIntegration
+
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            environment=settings.APP_ENV,
+            release=f"personal-cfo-ai@{settings.APP_VERSION}",
+            integrations=[
+                StarletteIntegration(transaction_style="endpoint"),
+                FastApiIntegration(transaction_style="endpoint"),
+            ],
+            traces_sample_rate=0.1,
+            send_default_pii=False,
+        )
+        logger.info("sentry.initialized", env=settings.APP_ENV)
+    except Exception as e:
+        logger.warning("sentry.init_failed", error=str(e))
 
 # ── 2. App ─────────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -52,6 +75,7 @@ app = FastAPI(
 # RequestID must be first so every log line downstream includes the request_id
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(AccessLogMiddleware)
+app.add_middleware(MetricsMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,

@@ -19,6 +19,10 @@ const Advisor       = lazy(() => import("@/pages/Advisor"));
 const Goals         = lazy(() => import("@/pages/Goals"));
 const ComingSoon    = lazy(() => import("@/pages/ComingSoon"));
 
+// Admin pages
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const AdminUsers     = lazy(() => import("@/pages/admin/AdminUsers"));
+
 export default function App() {
   return (
     <ToastProvider>
@@ -46,6 +50,10 @@ export default function App() {
             <Route path="/advisor"   element={<Advisor />} />
             <Route path="/goals"     element={<Goals />} />
             <Route path="/settings"  element={<ComingSoon />} />
+
+            {/* Admin routes — API enforces role check, frontend provides UX guard */}
+            <Route path="/admin"       element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
           </Route>
 
           {/* Default redirects */}

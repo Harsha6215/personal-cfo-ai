@@ -15,6 +15,7 @@ from backend.models.decision_history import DecisionRecord
 
 # Epic 6: SaaS Platform
 from backend.models.user_profile import UserProfile
+from backend.models.audit_log import AuditLog
 
 __all__ = [
     "User",
@@ -31,4 +32,5 @@ __all__ = [
     "DecisionRecord",
     # Epic 6
     "UserProfile",
+    "AuditLog",
 ]

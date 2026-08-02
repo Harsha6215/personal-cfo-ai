@@ -58,6 +58,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
 
+    # ── Sentry ─────────────────────────────────────────────────────────────────
+    SENTRY_DSN: str = ""  # Set in production; empty = disabled
+
     # ── Logging ────────────────────────────────────────────────────────────────
     LOG_LEVEL: str = "INFO"
     LOG_JSON: bool = False  # set True in production for structured JSON logs

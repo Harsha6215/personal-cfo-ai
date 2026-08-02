@@ -49,18 +49,18 @@
 
 ## Sprint 6.5 — Monitoring & Admin Portal
 
-- [ ] 36. Create `backend/services/metrics.py` — Redis-based metrics collector: request counts, latencies, error counts, LLM usage per user/day
-- [ ] 37. Add metrics collection middleware: increment Redis counters on every request (endpoint, status, latency)
-- [ ] 38. Integrate Sentry: add `sentry-sdk[fastapi]` to requirements, initialize in `main.py` for production, capture user context on each request
-- [ ] 39. Update structured logging: ensure all production logs are JSON with request_id, user_id, endpoint, response_time_ms, status_code
-- [ ] 40. Create `backend/models/audit_log.py` — AuditLog model (admin_user_id, action, target_type, target_id, details JSONB)
-- [ ] 41. Create Alembic migration for `audit_logs` table
-- [ ] 42. Create `backend/api/v1/admin/` package with router: users, metrics, invites, feedback, audit endpoints (all protected by `require_admin`)
-- [ ] 43. Create admin user management endpoints: list users, get user detail, deactivate, activate, view user's API usage
-- [ ] 44. Create admin metrics endpoint: aggregate Redis counters into response (total requests, errors, p50/p95 latency, active users)
-- [ ] 45. Create admin LLM usage endpoint: total calls, cost breakdown by user, token usage, failed requests
-- [ ] 46. Build frontend admin pages: `AdminDashboard.tsx` (metrics overview), `AdminUsers.tsx` (user table), `AdminAIUsage.tsx`, `AdminFeedback.tsx`
-- [ ] 47. Add admin route protection on frontend: check user.role === 'ADMIN' before rendering admin pages, add `/admin` routes to App.tsx
+- [x] 36. Create `backend/services/metrics.py` — Redis-based metrics collector: request counts, latencies, error counts, LLM usage per user/day
+- [x] 37. Add metrics collection middleware: increment Redis counters on every request (endpoint, status, latency)
+- [x] 38. Integrate Sentry: add `sentry-sdk[fastapi]` to requirements, initialize in `main.py` for production, capture user context on each request
+- [x] 39. Update structured logging: ensure all production logs are JSON with request_id, user_id, endpoint, response_time_ms, status_code
+- [x] 40. Create `backend/models/audit_log.py` — AuditLog model (admin_user_id, action, target_type, target_id, details JSONB)
+- [x] 41. Create Alembic migration for `audit_logs` table
+- [x] 42. Create `backend/api/v1/admin/` package with router: users, metrics, invites, feedback, audit endpoints (all protected by `require_admin`)
+- [x] 43. Create admin user management endpoints: list users, get user detail, deactivate, activate, view user's API usage
+- [x] 44. Create admin metrics endpoint: aggregate Redis counters into response (total requests, errors, p50/p95 latency, active users)
+- [x] 45. Create admin LLM usage endpoint: total calls, cost breakdown by user, token usage, failed requests
+- [x] 46. Build frontend admin pages: `AdminDashboard.tsx` (metrics overview), `AdminUsers.tsx` (user table), `AdminAIUsage.tsx`, `AdminFeedback.tsx`
+- [x] 47. Add admin route protection on frontend: check user.role === 'ADMIN' before rendering admin pages, add `/admin` routes to App.tsx
 
 ## Sprint 6.6 — Beta Launch
 
