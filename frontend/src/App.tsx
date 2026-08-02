@@ -12,6 +12,10 @@ const Import        = lazy(() => import("@/pages/Import"));
 const ImportHistory = lazy(() => import("@/pages/ImportHistory"));
 const Portfolio     = lazy(() => import("@/pages/Portfolio"));
 const StockDetail   = lazy(() => import("@/pages/StockDetail"));
+const Watchlist     = lazy(() => import("@/pages/Watchlist"));
+const Research      = lazy(() => import("@/pages/Research"));
+const Advisor       = lazy(() => import("@/pages/Advisor"));
+const Goals         = lazy(() => import("@/pages/Goals"));
 const ComingSoon    = lazy(() => import("@/pages/ComingSoon"));
 
 export default function App() {
@@ -35,10 +39,10 @@ export default function App() {
             <Route path="/stock/:ticker" element={<StockDetail />} />
             <Route path="/import"    element={<Import />} />
             <Route path="/imports"   element={<ImportHistory />} />
-            <Route path="/watchlist" element={<ComingSoon />} />
-            <Route path="/research"  element={<ComingSoon />} />
-            <Route path="/advisor"   element={<ComingSoon />} />
-            <Route path="/goals"     element={<ComingSoon />} />
+            <Route path="/watchlist" element={<Watchlist />} />
+            <Route path="/research"  element={<Research />} />
+            <Route path="/advisor"   element={<Advisor />} />
+            <Route path="/goals"     element={<Goals />} />
             <Route path="/settings"  element={<ComingSoon />} />
           </Route>
 

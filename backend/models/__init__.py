@@ -10,6 +10,9 @@ from backend.models.asset import Asset
 from backend.models.financial_event import FinancialEvent
 from backend.models.import_job import ImportJob
 
+# Epic 5: Decision Intelligence
+from backend.models.decision_history import DecisionRecord
+
 __all__ = [
     "User",
     "Portfolio",
@@ -20,4 +23,6 @@ __all__ = [
     "Asset",
     "FinancialEvent",
     "ImportJob",
+    # Epic 5
+    "DecisionRecord",
 ]

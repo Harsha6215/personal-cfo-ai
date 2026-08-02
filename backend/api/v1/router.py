@@ -45,5 +45,13 @@ from backend.api.v1 import ai
 router.include_router(ai.router, prefix="/ai")
 
 # ── Epic 5: Decision Intelligence ──────────────────────────────────────────────
-from backend.api.v1 import decisions
+from backend.api.v1 import decisions, allocation, rebalance, opportunities, rankings, watchlist_intel, alerts, decision_history, cio_report
 router.include_router(decisions.router, prefix="/decisions")
+router.include_router(allocation.router, prefix="/decisions")
+router.include_router(rebalance.router, prefix="/decisions")
+router.include_router(opportunities.router, prefix="/decisions")
+router.include_router(rankings.router, prefix="/decisions")
+router.include_router(watchlist_intel.router, prefix="/decisions")
+router.include_router(alerts.router, prefix="/decisions")
+router.include_router(decision_history.router, prefix="/decisions")
+router.include_router(cio_report.router, prefix="/decisions")
