@@ -18,6 +18,8 @@ from backend.core.auth import require_admin
 from backend.core.database import get_db
 from backend.models.audit_log import AuditLog
 from backend.models.base import new_uuid
+from backend.models.feedback import Feedback
+from backend.models.invite_code import InviteCode
 from backend.models.user import User, UserRole
 from backend.services.metrics import (
     get_active_users_today,
@@ -245,6 +247,183 @@ async def get_audit_log(
             target_type=e.target_type,
             target_id=e.target_id,
             details=e.details,
+            created_at=e.created_at,
+        )
+        for e in entries
+    ]
+
+
+@router.get("/audit", response_model=list[AuditLogEntry])
+async def get_audit_log(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get audit log entries, newest first."""
+    result = await db.execute(
+        select(AuditLog).order_by(AuditLog.created_at.desc()).offset(skip).limit(limit)
+    )
+    entries = result.scalars().all()
+    return [
+        AuditLogEntry(
+            id=e.id,
+            admin_user_id=e.admin_user_id,
+            action=e.action,
+            target_type=e.target_type,
+            target_id=e.target_id,
+            details=e.details,
+            created_at=e.created_at,
+        )
+        for e in entries
+    ]
+
+
+# ── Invite Code Management — Sprint 6.6 ───────────────────────────────────────
+
+import secrets as _secrets
+
+
+class InviteGenerateRequest(BaseModel):
+    count: int = 5
+    max_uses: int = 1
+
+
+class InviteCodeResponse(BaseModel):
+    id: str
+    code: str
+    created_by: str
+    max_uses: int
+    current_uses: int
+    expires_at: Optional[datetime] = None
+    is_active: bool
+    created_at: datetime
+
+
+@router.post("/invites/generate", response_model=list[InviteCodeResponse])
+async def generate_invite_codes(
+    body: InviteGenerateRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate N random invite codes."""
+    codes = []
+    for _ in range(body.count):
+        code_str = _secrets.token_urlsafe(6).upper()[:8]
+        invite = InviteCode(
+            id=new_uuid(),
+            code=code_str,
+            created_by=admin.id,
+            max_uses=body.max_uses,
+        )
+        db.add(invite)
+        codes.append(invite)
+
+    await db.flush()
+    for c in codes:
+        await db.refresh(c)
+    await db.commit()
+
+    await _create_audit_log(
+        db, admin.id, "invite.generate", "invite_code", "",
+        details={"count": body.count, "max_uses": body.max_uses},
+    )
+
+    return [
+        InviteCodeResponse(
+            id=c.id,
+            code=c.code,
+            created_by=c.created_by,
+            max_uses=c.max_uses,
+            current_uses=c.current_uses,
+            expires_at=c.expires_at,
+            is_active=c.is_active,
+            created_at=c.created_at,
+        )
+        for c in codes
+    ]
+
+
+@router.get("/invites", response_model=list[InviteCodeResponse])
+async def list_invite_codes(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all invite codes with usage stats."""
+    result = await db.execute(
+        select(InviteCode).order_by(InviteCode.created_at.desc())
+    )
+    invites = result.scalars().all()
+    return [
+        InviteCodeResponse(
+            id=c.id,
+            code=c.code,
+            created_by=c.created_by,
+            max_uses=c.max_uses,
+            current_uses=c.current_uses,
+            expires_at=c.expires_at,
+            is_active=c.is_active,
+            created_at=c.created_at,
+        )
+        for c in invites
+    ]
+
+
+@router.post("/invites/{code_id}/deactivate", response_model=MessageResponse)
+async def deactivate_invite_code(
+    code_id: str,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Deactivate an invite code."""
+    result = await db.execute(select(InviteCode).where(InviteCode.id == code_id))
+    invite = result.scalar_one_or_none()
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite code not found")
+
+    invite.is_active = False
+    await db.commit()
+
+    await _create_audit_log(
+        db, admin.id, "invite.deactivate", "invite_code", code_id,
+        details={"code": invite.code},
+    )
+    return MessageResponse(message=f"Invite code {invite.code} deactivated")
+
+
+# ── Feedback Management — Sprint 6.6 ──────────────────────────────────────────
+
+
+class FeedbackListItem(BaseModel):
+    id: str
+    user_id: str
+    feedback_type: str
+    content: str
+    rating: Optional[int] = None
+    page: Optional[str] = None
+    created_at: datetime
+
+
+@router.get("/feedback", response_model=list[FeedbackListItem])
+async def list_feedback(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all user feedback, newest first."""
+    result = await db.execute(
+        select(Feedback).order_by(Feedback.created_at.desc()).offset(skip).limit(limit)
+    )
+    entries = result.scalars().all()
+    return [
+        FeedbackListItem(
+            id=e.id,
+            user_id=e.user_id,
+            feedback_type=e.feedback_type,
+            content=e.content,
+            rating=e.rating,
+            page=e.page,
             created_at=e.created_at,
         )
         for e in entries

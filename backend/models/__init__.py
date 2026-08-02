@@ -17,6 +17,10 @@ from backend.models.decision_history import DecisionRecord
 from backend.models.user_profile import UserProfile
 from backend.models.audit_log import AuditLog
 
+# Sprint 6.6: Beta Launch
+from backend.models.invite_code import InviteCode
+from backend.models.feedback import Feedback
+
 __all__ = [
     "User",
     "UserRole",
@@ -33,4 +37,7 @@ __all__ = [
     # Epic 6
     "UserProfile",
     "AuditLog",
+    # Sprint 6.6
+    "InviteCode",
+    "Feedback",
 ]

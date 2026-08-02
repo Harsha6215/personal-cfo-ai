@@ -64,16 +64,16 @@
 
 ## Sprint 6.6 — Beta Launch
 
-- [ ] 48. Create `backend/models/invite_code.py` — InviteCode model (code, created_by, max_uses, current_uses, expires_at, is_active)
-- [ ] 49. Create Alembic migration for `invite_codes` table
-- [ ] 50. Modify `POST /api/v1/auth/register` to require and validate `invite_code` field; increment usage on successful registration
-- [ ] 51. Create admin invite code endpoints: generate codes (batch), list codes, deactivate code
-- [ ] 52. Create `backend/models/feedback.py` — Feedback model (user_id, feedback_type, content, rating, page, metadata)
-- [ ] 53. Create Alembic migration for `feedback` table
-- [ ] 54. Create `POST /api/v1/feedback` endpoint — authenticated users can submit feedback
-- [ ] 55. Build frontend `FeedbackWidget.tsx` — floating button, popup with type selector (bug/feature/AI rating), text input, optional rating stars
-- [ ] 56. Add FeedbackWidget to AppShell so it's available on every authenticated page
-- [ ] 57. Run full security audit: verify OWASP Top 10 mitigations, run `pip-audit` and `npm audit`, fix any critical/high vulnerabilities
-- [ ] 58. Create `docs/beta-launch-checklist.md` — document launch steps, user communication template, support process, rollback plan
-- [ ] 59. Set up automated daily database backup verification (Neon built-in, document recovery steps)
-- [ ] 60. Create seed script to generate initial admin user and 10 invite codes for beta launch
+- [x] 48. Create `backend/models/invite_code.py` — InviteCode model (code, created_by, max_uses, current_uses, expires_at, is_active)
+- [x] 49. Create Alembic migration for `invite_codes` table
+- [x] 50. Modify `POST /api/v1/auth/register` to require and validate `invite_code` field; increment usage on successful registration
+- [x] 51. Create admin invite code endpoints: generate codes (batch), list codes, deactivate code
+- [x] 52. Create `backend/models/feedback.py` — Feedback model (user_id, feedback_type, content, rating, page, metadata)
+- [x] 53. Create Alembic migration for `feedback` table
+- [x] 54. Create `POST /api/v1/feedback` endpoint — authenticated users can submit feedback
+- [x] 55. Build frontend `FeedbackWidget.tsx` — floating button, popup with type selector (bug/feature/AI rating), text input, optional rating stars
+- [x] 56. Add FeedbackWidget to AppShell so it's available on every authenticated page
+- [x] 57. Run full security audit: verify OWASP Top 10 mitigations, run `pip-audit` and `npm audit`, fix any critical/high vulnerabilities
+- [x] 58. Create `docs/beta-launch-checklist.md` — document launch steps, user communication template, support process, rollback plan
+- [x] 59. Set up automated daily database backup verification (Neon built-in, document recovery steps)
+- [x] 60. Create seed script to generate initial admin user and 10 invite codes for beta launch

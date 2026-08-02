@@ -63,3 +63,7 @@ router.include_router(cio_report.router, prefix="/decisions")
 # ── Epic 6: Admin / Monitoring ─────────────────────────────────────────────────
 from backend.api.v1 import admin
 router.include_router(admin.router, prefix="/admin")
+
+# ── Sprint 6.6: Feedback ──────────────────────────────────────────────────────
+from backend.api.v1 import feedback
+router.include_router(feedback.router, prefix="/feedback")

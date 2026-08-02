@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { FeedbackWidget } from "../FeedbackWidget";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -27,6 +28,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+      <FeedbackWidget />
     </div>
   );
 }

@@ -47,6 +47,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     full_name: str | None = None
+    invite_code: str | None = None
 
 
 class LoginResponse(BaseModel):
@@ -108,6 +109,33 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
             detail="Password must be at least 8 characters.",
         )
 
+    # Validate invite code if provided
+    invite = None
+    if body.invite_code:
+        from datetime import datetime, timezone
+        from backend.models.invite_code import InviteCode
+
+        invite_result = await db.execute(
+            select(InviteCode).where(InviteCode.code == body.invite_code)
+        )
+        invite = invite_result.scalar_one_or_none()
+
+        if invite is None or not invite.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired invite code",
+            )
+        if invite.current_uses >= invite.max_uses:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired invite code",
+            )
+        if invite.expires_at and invite.expires_at < datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired invite code",
+            )
+
     user = User(
         email=body.email,
         hashed_password=hash_password(body.password),
@@ -116,6 +144,11 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     db.add(user)
     await db.flush()
     await db.refresh(user)
+
+    # Increment invite code usage on successful registration
+    if invite:
+        invite.current_uses += 1
+        await db.flush()
 
     logger.info("auth.register", user_id=user.id, email=user.email)
     return user
