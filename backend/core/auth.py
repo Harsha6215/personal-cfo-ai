@@ -1,16 +1,20 @@
 """
 Authentication dependencies for FastAPI.
 
-Provides get_current_user — a Depends() callable that extracts and validates
-the JWT from the Authorization header and returns the authenticated User.
+Provides:
+    - get_current_user: extract + validate JWT, return User
+    - require_admin: same as above but enforces UserRole.ADMIN
 
 Usage in any route:
-    from backend.core.auth import get_current_user
-    from backend.models.user import User
+    from backend.core.auth import get_current_user, require_admin
 
     @router.get("/me")
     async def me(user: User = Depends(get_current_user)):
         return user
+
+    @router.get("/admin/users")
+    async def list_users(user: User = Depends(require_admin)):
+        ...
 """
 
 from fastapi import Depends, HTTPException, status
@@ -20,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.database import get_db
 from backend.core.security import decode_token
-from backend.models.user import User
+from backend.models.user import User, UserRole
 
 # This tells Swagger to show a "lock" icon and send Bearer tokens
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -56,4 +60,20 @@ async def get_current_user(
     if user is None or not user.is_active:
         raise credentials_exception
 
+    return user
+
+
+async def require_admin(
+    user: User = Depends(get_current_user),
+) -> User:
+    """
+    Dependency that enforces admin role.
+    Use on admin-only endpoints.
+    Raises 403 if user is not an admin.
+    """
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
     return user

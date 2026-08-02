@@ -1,5 +1,5 @@
 # Import all models here so Alembic can discover them via Base.metadata
-from backend.models.user import User
+from backend.models.user import User, UserRole
 from backend.models.portfolio import Portfolio
 from backend.models.holding import Holding
 from backend.models.transaction import Transaction
@@ -15,6 +15,7 @@ from backend.models.decision_history import DecisionRecord
 
 __all__ = [
     "User",
+    "UserRole",
     "Portfolio",
     "Holding",
     "Transaction",

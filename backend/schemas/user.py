@@ -34,6 +34,7 @@ class UserResponse(UserBase):
     """Returned by the API — never includes hashed_password."""
     id: str
     is_active: bool
+    role: str = "USER"
     created_at: datetime
 
     model_config = {"from_attributes": True}

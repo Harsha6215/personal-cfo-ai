@@ -21,6 +21,7 @@ from backend.core.config import settings
 from backend.core.exceptions import AppError, app_error_handler, unhandled_error_handler
 from backend.core.logging import setup_logging
 from backend.middleware.logging import AccessLogMiddleware
+from backend.middleware.rate_limit import RateLimitMiddleware
 from backend.middleware.request_id import RequestIDMiddleware
 
 # ── 1. Logging ─────────────────────────────────────────────────────────────────
@@ -51,6 +52,7 @@ app = FastAPI(
 # RequestID must be first so every log line downstream includes the request_id
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(AccessLogMiddleware)
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -91,4 +93,7 @@ async def on_startup() -> None:
 
 @app.on_event("shutdown")
 async def on_shutdown() -> None:
+    from backend.core.cache import close_redis_pool
+
+    await close_redis_pool()
     logger.info("app.shutdown")
