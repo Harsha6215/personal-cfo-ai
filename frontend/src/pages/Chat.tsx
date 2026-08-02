@@ -97,8 +97,8 @@ export default function Chat() {
 
     // Route to appropriate endpoint based on query intent
 
-    // Intent: "how much do I hold" / "quantity" / "do I have" for a specific stock
-    if (ticker && (query.toLowerCase().includes("hold") || query.toLowerCase().includes("quantity") || query.toLowerCase().includes("how much") || query.toLowerCase().includes("do i have"))) {
+    // Intent: "how much do I hold" / "quantity" / "do I have" / "from my portfolio" for a specific stock
+    if (ticker && (query.toLowerCase().includes("hold") || query.toLowerCase().includes("quantity") || query.toLowerCase().includes("how much") || query.toLowerCase().includes("do i have") || query.toLowerCase().includes("from my portfolio") || query.toLowerCase().includes("my portfolio"))) {
       const res = await fetch("/api/v1/portfolios", { headers });
       if (res.ok) {
         const portfolios = await res.json();
@@ -109,14 +109,41 @@ export default function Chat() {
             const match = data.holdings.find((h: any) =>
               h.ticker.toUpperCase() === ticker ||
               h.ticker.toUpperCase().replace(".NS", "").replace(".BO", "") === ticker ||
-              h.name.toUpperCase().includes(ticker)
+              h.name.toUpperCase().includes(ticker) ||
+              ticker.includes(h.ticker.toUpperCase())
             );
-            if (match) {
-              return `📋 **${match.ticker}** (${match.name})\n\n` +
-                `• Quantity: ${match.quantity}\n` +
-                `• Avg Cost: ₹${Number(match.average_cost).toLocaleString("en-IN")}\n` +
-                `• Invested: ₹${Number(match.invested_value).toLocaleString("en-IN")}\n` +
-                `• Type: ${match.asset_type}`;
+            // If no exact match, try fuzzy: see if any holding's ticker/name is contained in the full query
+            const fuzzyMatch = !match ? data.holdings.find((h: any) =>
+              upperQuery.includes(h.ticker.toUpperCase()) ||
+              upperQuery.replace(/\s+/g, "").includes(h.ticker.toUpperCase())
+            ) : null;
+            const found = match || fuzzyMatch;
+            if (found) {
+              // Fetch live price for P&L calculation
+              let liveInfo = "";
+              try {
+                const quoteRes = await fetch(`/api/v1/market/quote/${found.ticker}`, { headers });
+                if (quoteRes.ok) {
+                  const quote = await quoteRes.json();
+                  const currentValue = quote.price * found.quantity;
+                  const pnl = currentValue - found.invested_value;
+                  const pnlPct = found.invested_value > 0 ? (pnl / found.invested_value) * 100 : 0;
+                  const pnlSign = pnl >= 0 ? "+" : "";
+                  liveInfo = `\n\n📈 **Live Data**\n` +
+                    `• Current Price: ₹${quote.price.toLocaleString("en-IN")}\n` +
+                    `• Current Value: ₹${currentValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}\n` +
+                    `• P&L: ${pnlSign}₹${pnl.toLocaleString("en-IN", { maximumFractionDigits: 0 })} (${pnlSign}${pnlPct.toFixed(2)}%)\n` +
+                    `• Day Change: ${quote.change >= 0 ? "+" : ""}${quote.change_pct.toFixed(2)}%`;
+                }
+              } catch { /* live price unavailable */ }
+
+              return `📋 **${found.ticker}** (${found.name})\n\n` +
+                `💼 **Your Position**\n` +
+                `• Quantity: ${found.quantity}\n` +
+                `• Avg Cost: ₹${Number(found.average_cost).toLocaleString("en-IN")}\n` +
+                `• Invested: ₹${Number(found.invested_value).toLocaleString("en-IN")}\n` +
+                `• Type: ${found.asset_type}` +
+                liveInfo;
             }
             // Show what we have so user can see correct ticker names
             const allTickers = data.holdings.map((h: any) => h.ticker).join(", ");
