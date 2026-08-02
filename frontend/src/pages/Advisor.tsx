@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
+import { VoiceInput } from "@/components/VoiceInput";
 import { getStoredToken } from "@/services/auth";
 
 interface CIOReport {
@@ -42,6 +43,9 @@ export default function Advisor() {
   const [report, setReport] = useState<CIOReport | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -56,6 +60,49 @@ export default function Advisor() {
     }).finally(() => setLoading(false));
   }, []);
 
+  async function askAI() {
+    if (!query.trim()) return;
+    setAiLoading(true);
+    setAiResponse(null);
+
+    const token = getStoredToken();
+    try {
+      // Extract ticker from query if possible (e.g., "analyze RELIANCE")
+      const tickerMatch = query.match(/\b([A-Z]{2,15})\b/);
+      const ticker = tickerMatch ? tickerMatch[1] : null;
+
+      if (ticker) {
+        // Use the AI analysis endpoint
+        const res = await fetch(`/api/v1/ai/analyze/${ticker}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const summary = data.responses
+            ?.map((r: any) => `**${r.agent_name}** (${r.score}/10): ${r.summary}`)
+            .join("\n\n") || "Analysis complete.";
+          setAiResponse(`Analysis for ${ticker}:\n\n${summary}`);
+        } else {
+          setAiResponse("Sorry, I couldn't analyze that ticker. Try a valid NSE stock symbol.");
+        }
+      } else {
+        // Generic response for non-ticker queries
+        setAiResponse(
+          "I can analyze specific stocks for you. Try asking:\n" +
+          "• 'Analyze RELIANCE'\n" +
+          "• 'Should I buy TCS?'\n" +
+          "• 'What about INFY?'\n\n" +
+          "Just mention a stock ticker (in CAPS) and I'll run the AI agents on it."
+        );
+      }
+    } catch {
+      setAiResponse("Something went wrong. Please try again.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   if (loading) {
     return <div className="flex h-64 items-center justify-center"><Spinner size="lg" /></div>;
   }
@@ -66,6 +113,38 @@ export default function Advisor() {
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">AI Advisor</h1>
         <p className="text-sm text-slate-500">{report?.greeting || "Your daily investment intelligence"}</p>
       </div>
+
+      {/* Ask AI — with voice input */}
+      <Card>
+        <div className="p-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && query.trim() && askAI()}
+              placeholder="Ask anything... e.g. 'Should I buy Reliance?' or 'Analyze my portfolio risk'"
+              className="input flex-1"
+            />
+            <VoiceInput
+              onResult={(text) => { setQuery(text); }}
+              className="h-10 w-10 flex-shrink-0"
+            />
+            <button
+              onClick={askAI}
+              disabled={!query.trim() || aiLoading}
+              className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 disabled:opacity-50 transition flex-shrink-0"
+            >
+              {aiLoading ? "…" : "Ask"}
+            </button>
+          </div>
+          {aiResponse && (
+            <div className="mt-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
+              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{aiResponse}</p>
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* Action Items */}
       {report?.action_items && report.action_items.length > 0 && (
