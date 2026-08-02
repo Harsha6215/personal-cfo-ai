@@ -24,16 +24,16 @@
 
 ## Sprint 6.3 — Authentication Upgrade
 
-- [ ] 17. Add `authlib` to backend requirements and create `backend/services/oauth.py` for Google OAuth token exchange
-- [ ] 18. Create `POST /api/v1/auth/google` endpoint — accepts Google auth code, exchanges for user info, finds/creates User, returns JWT tokens
-- [ ] 19. Add Google sign-in button to frontend Login page using Google Identity Services library
-- [ ] 20. Implement token blacklisting: on logout, add token JTI to Redis with TTL; update `get_current_user` to check blacklist
-- [ ] 21. Add JTI (JWT ID) claim to token creation in `security.py`; check JTI in `get_current_user`
-- [ ] 22. Implement refresh token rotation: on each `/auth/refresh` call, invalidate old refresh token in Redis and issue new pair
-- [ ] 23. Create `require_admin` dependency in `backend/core/auth.py` that checks `user.role == ADMIN`
-- [ ] 24. Add OTP-based login: `POST /api/v1/auth/request-otp` (sends email), `POST /api/v1/auth/verify-otp` (validates and returns tokens)
-- [ ] 25. Add account deletion endpoint: `DELETE /api/v1/auth/account` — soft-delete immediately, schedule hard delete after 30 days
-- [ ] 26. Update frontend auth service and Login page to support Google OAuth and OTP flows
+- [x] 17. Add `authlib` to backend requirements and create `backend/services/oauth.py` for Google OAuth token exchange
+- [x] 18. Create `POST /api/v1/auth/google` endpoint — accepts Google auth code, exchanges for user info, finds/creates User, returns JWT tokens
+- [x] 19. Add Google sign-in button to frontend Login page using Google Identity Services library
+- [x] 20. Implement token blacklisting: on logout, add token JTI to Redis with TTL; update `get_current_user` to check blacklist
+- [x] 21. Add JTI (JWT ID) claim to token creation in `security.py`; check JTI in `get_current_user`
+- [x] 22. Implement refresh token rotation: on each `/auth/refresh` call, invalidate old refresh token in Redis and issue new pair
+- [x] 23. Create `require_admin` dependency in `backend/core/auth.py` that checks `user.role == ADMIN`
+- [x] 24. Add OTP-based login: `POST /api/v1/auth/request-otp` (sends email), `POST /api/v1/auth/verify-otp` (validates and returns tokens)
+- [x] 25. Add account deletion endpoint: `DELETE /api/v1/auth/account` — soft-delete immediately, schedule hard delete after 30 days
+- [x] 26. Update frontend auth service and Login page to support Google OAuth and OTP flows
 
 ## Sprint 6.4 — User Onboarding
 

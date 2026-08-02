@@ -35,6 +35,17 @@ depends_on: Union[str, Sequence[str], None] = None
 DIRECT_TABLES = ["portfolios", "import_jobs", "watchlist", "decision_history"]
 
 
+def _table_exists(conn, table_name: str) -> bool:
+    """Check if a table exists in the database."""
+    result = conn.execute(
+        sa.text(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = :t)"
+        ),
+        {"t": table_name},
+    )
+    return result.scalar()
+
+
 def upgrade() -> None:
     conn = op.get_bind()
 
@@ -44,6 +55,8 @@ def upgrade() -> None:
 
     # ── Enable RLS on tables with direct user_id ──────────────────────────────
     for table in DIRECT_TABLES:
+        if not _table_exists(conn, table):
+            continue  # Skip tables not yet created
         conn.execute(
             sa.text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
         )
@@ -79,72 +92,74 @@ def upgrade() -> None:
     # but RLS works best with a direct column. We'll use a subquery policy instead.
 
     # Holdings — join through portfolios
-    conn.execute(sa.text("ALTER TABLE holdings ENABLE ROW LEVEL SECURITY"))
-    conn.execute(sa.text("ALTER TABLE holdings FORCE ROW LEVEL SECURITY"))
-    conn.execute(
-        sa.text(
-            """
-            CREATE POLICY tenant_isolation_holdings ON holdings
-                FOR ALL
-                USING (
-                    portfolio_id IN (
-                        SELECT id FROM portfolios
-                        WHERE user_id = current_setting('app.current_user_id', true)::text
+    if _table_exists(conn, "holdings"):
+        conn.execute(sa.text("ALTER TABLE holdings ENABLE ROW LEVEL SECURITY"))
+        conn.execute(sa.text("ALTER TABLE holdings FORCE ROW LEVEL SECURITY"))
+        conn.execute(
+            sa.text(
+                """
+                CREATE POLICY tenant_isolation_holdings ON holdings
+                    FOR ALL
+                    USING (
+                        portfolio_id IN (
+                            SELECT id FROM portfolios
+                            WHERE user_id = current_setting('app.current_user_id', true)::text
+                        )
                     )
-                )
-                WITH CHECK (
-                    portfolio_id IN (
-                        SELECT id FROM portfolios
-                        WHERE user_id = current_setting('app.current_user_id', true)::text
+                    WITH CHECK (
+                        portfolio_id IN (
+                            SELECT id FROM portfolios
+                            WHERE user_id = current_setting('app.current_user_id', true)::text
+                        )
                     )
-                )
-            """
+                """
+            )
         )
-    )
-    conn.execute(
-        sa.text(
-            """
-            CREATE POLICY superuser_bypass_holdings ON holdings
-                FOR ALL
-                USING (current_setting('app.current_user_id', true) IS NULL OR
-                       current_setting('app.current_user_id', true) = '')
-            """
+        conn.execute(
+            sa.text(
+                """
+                CREATE POLICY superuser_bypass_holdings ON holdings
+                    FOR ALL
+                    USING (current_setting('app.current_user_id', true) IS NULL OR
+                           current_setting('app.current_user_id', true) = '')
+                """
+            )
         )
-    )
 
     # Financial events — join through portfolios
-    conn.execute(sa.text("ALTER TABLE financial_events ENABLE ROW LEVEL SECURITY"))
-    conn.execute(sa.text("ALTER TABLE financial_events FORCE ROW LEVEL SECURITY"))
-    conn.execute(
-        sa.text(
-            """
-            CREATE POLICY tenant_isolation_financial_events ON financial_events
-                FOR ALL
-                USING (
-                    portfolio_id IN (
-                        SELECT id FROM portfolios
-                        WHERE user_id = current_setting('app.current_user_id', true)::text
+    if _table_exists(conn, "financial_events"):
+        conn.execute(sa.text("ALTER TABLE financial_events ENABLE ROW LEVEL SECURITY"))
+        conn.execute(sa.text("ALTER TABLE financial_events FORCE ROW LEVEL SECURITY"))
+        conn.execute(
+            sa.text(
+                """
+                CREATE POLICY tenant_isolation_financial_events ON financial_events
+                    FOR ALL
+                    USING (
+                        portfolio_id IN (
+                            SELECT id FROM portfolios
+                            WHERE user_id = current_setting('app.current_user_id', true)::text
+                        )
                     )
-                )
-                WITH CHECK (
-                    portfolio_id IN (
-                        SELECT id FROM portfolios
-                        WHERE user_id = current_setting('app.current_user_id', true)::text
+                    WITH CHECK (
+                        portfolio_id IN (
+                            SELECT id FROM portfolios
+                            WHERE user_id = current_setting('app.current_user_id', true)::text
+                        )
                     )
-                )
-            """
+                """
+            )
         )
-    )
-    conn.execute(
-        sa.text(
-            """
-            CREATE POLICY superuser_bypass_financial_events ON financial_events
-                FOR ALL
-                USING (current_setting('app.current_user_id', true) IS NULL OR
-                       current_setting('app.current_user_id', true) = '')
-            """
+        conn.execute(
+            sa.text(
+                """
+                CREATE POLICY superuser_bypass_financial_events ON financial_events
+                    FOR ALL
+                    USING (current_setting('app.current_user_id', true) IS NULL OR
+                           current_setting('app.current_user_id', true) = '')
+                """
+            )
         )
-    )
 
 
 def downgrade() -> None:

@@ -35,8 +35,8 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """
-    Decode the JWT, look up the user, and return it.
-    Raises 401 if the token is invalid or user doesn't exist.
+    Decode the JWT, check blacklist, look up the user, and return it.
+    Raises 401 if the token is invalid, blacklisted, or user doesn't exist.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -50,9 +50,16 @@ async def get_current_user(
 
     user_id: str | None = payload.get("sub")
     token_type: str | None = payload.get("type")
+    jti: str | None = payload.get("jti")
 
     if user_id is None or token_type != "access":
         raise credentials_exception
+
+    # Check token blacklist (logout invalidation)
+    if jti:
+        from backend.services.token_blacklist import is_token_blacklisted
+        if await is_token_blacklisted(jti):
+            raise credentials_exception
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
