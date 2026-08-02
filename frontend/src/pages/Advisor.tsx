@@ -69,9 +69,9 @@ export default function Advisor() {
     try {
       // Extract ticker from query (case-insensitive, supports & in tickers)
       const upperQuery = query.toUpperCase();
-      const tickerMatch = upperQuery.match(/\b([A-Z][A-Z0-9&]{1,14})\b/);
-      const STOP_WORDS = new Set(["THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU", "ALL", "CAN", "HOW", "BUY", "SELL", "MORE", "MUCH", "SHOULD", "WHAT", "THIS", "THAT", "WITH", "WILL", "YOUR", "ABOUT", "HOLD"]);
-      const ticker = tickerMatch && !STOP_WORDS.has(tickerMatch[1]) && tickerMatch[1].length >= 3 ? tickerMatch[1] : null;
+      const allMatches = upperQuery.match(/\b[A-Z][A-Z0-9&]{1,14}\b/g) || [];
+      const STOP_WORDS = new Set(["THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU", "ALL", "CAN", "HOW", "BUY", "SELL", "MORE", "MUCH", "SHOULD", "WHAT", "THIS", "THAT", "WITH", "WILL", "YOUR", "ABOUT", "HOLD", "SHOW", "ANALYZE", "ANALYSIS"]);
+      const ticker = allMatches.filter(w => !STOP_WORDS.has(w) && w.length >= 3).sort((a, b) => b.length - a.length)[0] || null;
 
       if (ticker) {
         // Use the AI analysis endpoint

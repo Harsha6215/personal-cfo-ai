@@ -86,12 +86,14 @@ export default function Chat() {
     const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
 
     // Check if query mentions a ticker (case-insensitive, supports & in Indian tickers)
-    // Look for words that could be tickers: 2+ chars, alphanumeric + &
     const upperQuery = query.toUpperCase();
-    const tickerMatch = upperQuery.match(/\b([A-Z][A-Z0-9&]{1,14})\b/);
+    const allMatches = upperQuery.match(/\b[A-Z][A-Z0-9&]{1,14}\b/g) || [];
     // Filter out common English words that aren't tickers
-    const STOP_WORDS = new Set(["THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU", "ALL", "CAN", "HER", "WAS", "ONE", "OUR", "OUT", "HOW", "HAS", "ITS", "LET", "MAY", "WHO", "DID", "GET", "HIM", "HIS", "HIT", "HAS", "HAD", "SAY", "SHE", "USE", "WAY", "BUY", "SELL", "MORE", "MUCH", "SHOULD", "WHAT", "WHEN", "FROM", "HAVE", "THIS", "THAT", "WITH", "WILL", "YOUR", "ABOUT", "WHICH", "THEIR", "THERE", "WOULD", "MAKE", "LIKE", "JUST", "KNOW", "TAKE", "COME", "INTO", "SOME", "THAN", "THEM", "VERY", "HOLD", "MANY"]);
-    const ticker = tickerMatch && !STOP_WORDS.has(tickerMatch[1]) && tickerMatch[1].length >= 3 ? tickerMatch[1] : null;
+    const STOP_WORDS = new Set(["THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU", "ALL", "CAN", "HER", "WAS", "ONE", "OUR", "OUT", "HOW", "HAS", "ITS", "LET", "MAY", "WHO", "DID", "GET", "HIM", "HIS", "HIT", "HAD", "SAY", "SHE", "USE", "WAY", "BUY", "SELL", "MORE", "MUCH", "SHOULD", "WHAT", "WHEN", "FROM", "HAVE", "THIS", "THAT", "WITH", "WILL", "YOUR", "ABOUT", "WHICH", "THEIR", "THERE", "WOULD", "MAKE", "LIKE", "JUST", "KNOW", "TAKE", "COME", "INTO", "SOME", "THAN", "THEM", "VERY", "HOLD", "MANY", "SHOW", "GIVE", "ALSO", "BACK", "AFTER", "ONLY", "MOST", "TELL", "NEED", "STILL", "ANALYZE", "ANALYSIS"]);
+    // Pick the longest non-stop-word match (likely the ticker)
+    const ticker = allMatches
+      .filter(w => !STOP_WORDS.has(w) && w.length >= 3)
+      .sort((a, b) => b.length - a.length)[0] || null;
 
     // Route to appropriate endpoint based on query intent
 
@@ -104,15 +106,21 @@ export default function Chat() {
           const holdingsRes = await fetch(`/api/v1/portfolios/${portfolios[0].id}/holdings`, { headers });
           if (holdingsRes.ok) {
             const data = await holdingsRes.json();
-            const match = data.holdings.find((h: any) => h.ticker.toUpperCase() === ticker);
+            const match = data.holdings.find((h: any) =>
+              h.ticker.toUpperCase() === ticker ||
+              h.ticker.toUpperCase().replace(".NS", "").replace(".BO", "") === ticker ||
+              h.name.toUpperCase().includes(ticker)
+            );
             if (match) {
               return `📋 **${match.ticker}** (${match.name})\n\n` +
                 `• Quantity: ${match.quantity}\n` +
-                `• Avg Cost: ₹${match.average_cost.toLocaleString("en-IN")}\n` +
-                `• Invested: ₹${match.invested_value.toLocaleString("en-IN")}\n` +
+                `• Avg Cost: ₹${Number(match.average_cost).toLocaleString("en-IN")}\n` +
+                `• Invested: ₹${Number(match.invested_value).toLocaleString("en-IN")}\n` +
                 `• Type: ${match.asset_type}`;
             }
-            return `You don't hold **${ticker}** in your portfolio.`;
+            // Show what we have so user can see correct ticker names
+            const allTickers = data.holdings.map((h: any) => h.ticker).join(", ");
+            return `You don't hold **${ticker}** in your portfolio.\n\nYour holdings: ${allTickers}`;
           }
         }
         return "No portfolio found. Add your holdings first.";
