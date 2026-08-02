@@ -298,6 +298,17 @@ export default function Portfolio() {
           />
         )}
 
+        {/* Inline edit form for selected ticker */}
+        {editingTicker && (
+          <EditHoldingForm
+            portfolioId={data.portfolio_id}
+            ticker={editingTicker}
+            holding={data.holdings.find(h => h.ticker === editingTicker)}
+            onSaved={() => { setEditingTicker(null); window.location.reload(); }}
+            onCancel={() => setEditingTicker(null)}
+          />
+        )}
+
         <Table
           columns={[...columns, {
             key: "actions" as any,
@@ -307,7 +318,7 @@ export default function Portfolio() {
             render: (_: any, row: Holding) => (
               <div className="flex gap-1 justify-center">
                 <button
-                  onClick={() => setEditingTicker(editingTicker === row.ticker ? null : row.ticker)}
+                  onClick={() => setEditingTicker(row.ticker)}
                   className="rounded px-2 py-1 text-xs text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/20"
                   title="Edit"
                 >
@@ -327,17 +338,6 @@ export default function Portfolio() {
           loading={pricesLoading}
           emptyMessage="No holdings yet. Add one manually or import your broker CSV."
         />
-
-        {/* Inline edit form for selected ticker */}
-        {editingTicker && (
-          <EditHoldingForm
-            portfolioId={data.portfolio_id}
-            ticker={editingTicker}
-            holding={data.holdings.find(h => h.ticker === editingTicker)}
-            onSaved={() => { setEditingTicker(null); window.location.reload(); }}
-            onCancel={() => setEditingTicker(null)}
-          />
-        )}
       </Card>
     </div>
   );
