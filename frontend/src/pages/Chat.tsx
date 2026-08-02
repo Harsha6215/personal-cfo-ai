@@ -85,8 +85,8 @@ export default function Chat() {
     const token = getStoredToken();
     const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
 
-    // Check if query mentions a ticker
-    const tickerMatch = query.match(/\b([A-Z]{2,15})\b/);
+    // Check if query mentions a ticker (supports & in Indian tickers like M&M, GVT&D, L&TFH)
+    const tickerMatch = query.match(/\b([A-Z][A-Z0-9&]{1,14})\b/);
     const ticker = tickerMatch ? tickerMatch[1] : null;
 
     // Route to appropriate endpoint based on query intent
@@ -97,10 +97,13 @@ export default function Chat() {
       });
       if (res.ok) {
         const data = await res.json();
-        const agents = data.responses?.map((r: any) =>
-          `• **${r.agent_name}** (${r.score}/10): ${r.summary}`
-        ).join("\n") || "";
-        return `📊 **Analysis for ${ticker}**\n\n${agents}\n\n${data.responses?.length ? `Overall: ${data.responses.length} agents analyzed this stock.` : ""}`;
+        if (data.responses && data.responses.length > 0) {
+          const agents = data.responses.map((r: any) =>
+            `• **${r.agent_name}** (${r.score}/10): ${r.summary}`
+          ).join("\n");
+          return `📊 **Analysis for ${ticker}**\n\n${agents}\n\nOverall: ${data.responses.length} agents analyzed this stock.`;
+        }
+        return `📊 **${ticker}** — Analysis request sent but AI agents didn't return detailed results. This can happen outside market hours or for lesser-known tickers. Try again during NSE trading hours (9:15 AM - 3:30 PM IST).`;
       }
     }
 
@@ -152,12 +155,16 @@ export default function Chat() {
       });
       if (res.ok) {
         const data = await res.json();
-        const agents = data.responses?.map((r: any) =>
-          `• **${r.agent_name}** (${r.score}/10): ${r.summary}`
-        ).join("\n") || "";
-        return `📊 **Analysis for ${ticker}**\n\n${agents}`;
+        if (data.responses && data.responses.length > 0) {
+          const agents = data.responses.map((r: any) =>
+            `• **${r.agent_name}** (${r.score}/10): ${r.summary}`
+          ).join("\n");
+          return `📊 **Analysis for ${ticker}**\n\n${agents}`;
+        }
+        // If no agent responses, show whatever data came back
+        return `📊 **${ticker}** — Analysis completed but no detailed scores available. The AI agents may need market data (try during market hours).`;
       }
-      return `I couldn't find data for "${ticker}". Make sure it's a valid NSE ticker symbol (e.g., RELIANCE, TCS, INFY).`;
+      return `I couldn't find data for "${ticker}". Make sure it's a valid NSE ticker symbol (e.g., RELIANCE, TCS, INFY, M&M).`;
     }
 
     // Generic help

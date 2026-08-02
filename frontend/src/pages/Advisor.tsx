@@ -67,8 +67,8 @@ export default function Advisor() {
 
     const token = getStoredToken();
     try {
-      // Extract ticker from query if possible (e.g., "analyze RELIANCE")
-      const tickerMatch = query.match(/\b([A-Z]{2,15})\b/);
+      // Extract ticker from query if possible (supports & in tickers like M&M, GVT&D)
+      const tickerMatch = query.match(/\b([A-Z][A-Z0-9&]{1,14})\b/);
       const ticker = tickerMatch ? tickerMatch[1] : null;
 
       if (ticker) {
