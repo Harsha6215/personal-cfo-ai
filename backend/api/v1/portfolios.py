@@ -6,7 +6,7 @@ Portfolios are the top-level container. Holdings are computed from events.
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pydantic import BaseModel
 from sqlalchemy import select, func
@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.auth import get_current_user
 from backend.core.database import get_db
 from backend.models.portfolio import Portfolio
+from backend.models.asset import Asset, AssetType, Exchange
 from backend.models.financial_event import FinancialEvent, EventType
 from backend.models.user import User
 from backend.services.portfolio_engine import PortfolioEngine
@@ -40,6 +41,17 @@ class PortfolioCreate(BaseModel):
     name: str
     currency: str = "INR"
     description: str | None = None
+
+
+class AddHoldingRequest(BaseModel):
+    """Manually add a BUY event to a portfolio."""
+    ticker: str
+    name: str
+    quantity: float
+    price: float
+    asset_type: str = "STOCK"
+    exchange: str = "NSE"
+    notes: str | None = None
 
 
 class PortfolioSummary(BaseModel):
@@ -223,3 +235,79 @@ async def get_portfolio_holdings(
             for h in summary.holdings
         ],
     )
+
+
+# ── Manual Add Holding ─────────────────────────────────────────────────────────
+
+@router.post(
+    "/{portfolio_id}/add-holding",
+    status_code=status.HTTP_201_CREATED,
+    summary="Manually add a holding (BUY event)",
+    description="Creates an asset (if needed) and a BUY financial event. No CSV upload required.",
+)
+async def add_holding(
+    portfolio_id: str,
+    body: AddHoldingRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    # Verify portfolio ownership
+    result = await db.execute(
+        select(Portfolio).where(Portfolio.id == portfolio_id, Portfolio.user_id == user.id)
+    )
+    portfolio = result.scalar_one_or_none()
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
+    # Find or create asset
+    ticker = body.ticker.upper().strip()
+    result = await db.execute(select(Asset).where(Asset.ticker == ticker).limit(1))
+    asset = result.scalar_one_or_none()
+
+    if asset is None:
+        asset = Asset(
+            ticker=ticker,
+            name=body.name,
+            asset_type=AssetType(body.asset_type) if body.asset_type in [e.value for e in AssetType] else AssetType.STOCK,
+            exchange=Exchange(body.exchange) if body.exchange in [e.value for e in Exchange] else Exchange.NSE,
+            currency=portfolio.currency,
+        )
+        db.add(asset)
+        await db.flush()
+        await db.refresh(asset)
+
+    # Create BUY event
+    event = FinancialEvent(
+        portfolio_id=portfolio_id,
+        asset_id=asset.id,
+        event_type=EventType.BUY,
+        quantity=body.quantity,
+        price=body.price,
+        amount=body.quantity * body.price,
+        fees=0,
+        executed_at=datetime.now(timezone.utc),
+        source="manual",
+        exchange=body.exchange,
+        notes=body.notes,
+    )
+    db.add(event)
+    await db.flush()
+
+    logger.info(
+        "portfolio.holding_added",
+        portfolio_id=portfolio_id,
+        ticker=ticker,
+        quantity=body.quantity,
+        price=body.price,
+        user_id=user.id,
+    )
+
+    return {
+        "status": "added",
+        "ticker": ticker,
+        "quantity": body.quantity,
+        "price": body.price,
+        "invested": body.quantity * body.price,
+        "asset_id": asset.id,
+        "event_id": event.id,
+    }

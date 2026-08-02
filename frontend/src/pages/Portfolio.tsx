@@ -102,6 +102,7 @@ export default function Portfolio() {
   const [error, setError] = useState<string | null>(null);
   const [totalCurrentValue, setTotalCurrentValue] = useState<number | null>(null);
   const [totalPnl, setTotalPnl] = useState<number | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
     async function fetchPortfolio() {
@@ -261,13 +262,175 @@ export default function Portfolio() {
           title={`${data.portfolio_name}`}
           subtitle={pricesLoading ? "Fetching live prices…" : `${data.total_holdings} positions • Live prices from Yahoo Finance`}
         />
+        {/* Add Holding button */}
+        <div className="px-4 pb-3 flex gap-2">
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 transition"
+          >
+            + Add Holding
+          </button>
+          <Link to="/import" className="rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+            Import CSV
+          </Link>
+        </div>
+
+        {/* Add Holding Form */}
+        {showAddForm && (
+          <AddHoldingForm
+            portfolioId={data.portfolio_id}
+            onAdded={() => { setShowAddForm(false); window.location.reload(); }}
+            onCancel={() => setShowAddForm(false)}
+          />
+        )}
+
         <Table
           columns={columns}
           data={data.holdings}
           loading={pricesLoading}
-          emptyMessage="No holdings yet. Import your broker CSV to get started."
+          emptyMessage="No holdings yet. Add one manually or import your broker CSV."
         />
       </Card>
+    </div>
+  );
+}
+
+
+// ── Add Holding Form ──────────────────────────────────────────────────────────
+
+function AddHoldingForm({
+  portfolioId,
+  onAdded,
+  onCancel,
+}: {
+  portfolioId: string;
+  onAdded: () => void;
+  onCancel: () => void;
+}) {
+  const [ticker, setTicker] = useState("");
+  const [name, setName] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [price, setPrice] = useState("");
+  const [assetType, setAssetType] = useState("STOCK");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticker || !name || !quantity || !price) {
+      setError("All fields are required");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+
+    const token = getStoredToken();
+    try {
+      const res = await fetch(`/api/v1/portfolios/${portfolioId}/add-holding`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ticker: ticker.toUpperCase(),
+          name,
+          quantity: parseFloat(quantity),
+          price: parseFloat(price),
+          asset_type: assetType,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed to add holding");
+      }
+
+      onAdded();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mx-4 mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+      <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Ticker</label>
+          <input
+            value={ticker}
+            onChange={(e) => setTicker(e.target.value)}
+            className="input text-sm"
+            placeholder="RELIANCE"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Name</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="input text-sm"
+            placeholder="Reliance Industries"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Quantity</label>
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            className="input text-sm"
+            placeholder="10"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Buy Price (₹)</label>
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="input text-sm"
+            placeholder="2500"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Type</label>
+          <select
+            value={assetType}
+            onChange={(e) => setAssetType(e.target.value)}
+            className="input text-sm"
+          >
+            <option value="STOCK">Stock</option>
+            <option value="ETF">ETF</option>
+            <option value="MUTUAL_FUND">Mutual Fund</option>
+            <option value="BOND">Bond</option>
+            <option value="GOLD">Gold</option>
+          </select>
+        </div>
+        <div className="flex items-end gap-2">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 transition"
+          >
+            {submitting ? "…" : "Add"}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+      {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
     </div>
   );
 }
