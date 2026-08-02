@@ -85,11 +85,40 @@ export default function Chat() {
     const token = getStoredToken();
     const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
 
-    // Check if query mentions a ticker (supports & in Indian tickers like M&M, GVT&D, L&TFH)
-    const tickerMatch = query.match(/\b([A-Z][A-Z0-9&]{1,14})\b/);
-    const ticker = tickerMatch ? tickerMatch[1] : null;
+    // Check if query mentions a ticker (case-insensitive, supports & in Indian tickers)
+    // Look for words that could be tickers: 2+ chars, alphanumeric + &
+    const upperQuery = query.toUpperCase();
+    const tickerMatch = upperQuery.match(/\b([A-Z][A-Z0-9&]{1,14})\b/);
+    // Filter out common English words that aren't tickers
+    const STOP_WORDS = new Set(["THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU", "ALL", "CAN", "HER", "WAS", "ONE", "OUR", "OUT", "HOW", "HAS", "ITS", "LET", "MAY", "WHO", "DID", "GET", "HIM", "HIS", "HIT", "HAS", "HAD", "SAY", "SHE", "USE", "WAY", "BUY", "SELL", "MORE", "MUCH", "SHOULD", "WHAT", "WHEN", "FROM", "HAVE", "THIS", "THAT", "WITH", "WILL", "YOUR", "ABOUT", "WHICH", "THEIR", "THERE", "WOULD", "MAKE", "LIKE", "JUST", "KNOW", "TAKE", "COME", "INTO", "SOME", "THAN", "THEM", "VERY", "HOLD", "MANY"]);
+    const ticker = tickerMatch && !STOP_WORDS.has(tickerMatch[1]) && tickerMatch[1].length >= 3 ? tickerMatch[1] : null;
 
     // Route to appropriate endpoint based on query intent
+
+    // Intent: "how much do I hold" / "quantity" / "do I have" for a specific stock
+    if (ticker && (query.toLowerCase().includes("hold") || query.toLowerCase().includes("quantity") || query.toLowerCase().includes("how much") || query.toLowerCase().includes("do i have"))) {
+      const res = await fetch("/api/v1/portfolios", { headers });
+      if (res.ok) {
+        const portfolios = await res.json();
+        if (portfolios.length > 0) {
+          const holdingsRes = await fetch(`/api/v1/portfolios/${portfolios[0].id}/holdings`, { headers });
+          if (holdingsRes.ok) {
+            const data = await holdingsRes.json();
+            const match = data.holdings.find((h: any) => h.ticker.toUpperCase() === ticker);
+            if (match) {
+              return `📋 **${match.ticker}** (${match.name})\n\n` +
+                `• Quantity: ${match.quantity}\n` +
+                `• Avg Cost: ₹${match.average_cost.toLocaleString("en-IN")}\n` +
+                `• Invested: ₹${match.invested_value.toLocaleString("en-IN")}\n` +
+                `• Type: ${match.asset_type}`;
+            }
+            return `You don't hold **${ticker}** in your portfolio.`;
+          }
+        }
+        return "No portfolio found. Add your holdings first.";
+      }
+    }
+
     if (ticker && (query.toLowerCase().includes("analyze") || query.toLowerCase().includes("buy") || query.toLowerCase().includes("sell") || query.toLowerCase().includes("about"))) {
       const res = await fetch(`/api/v1/ai/analyze/${ticker}`, {
         method: "POST",
