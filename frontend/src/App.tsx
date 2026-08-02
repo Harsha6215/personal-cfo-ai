@@ -16,6 +16,7 @@ const StockDetail   = lazy(() => import("@/pages/StockDetail"));
 const Watchlist     = lazy(() => import("@/pages/Watchlist"));
 const Research      = lazy(() => import("@/pages/Research"));
 const Advisor       = lazy(() => import("@/pages/Advisor"));
+const Chat          = lazy(() => import("@/pages/Chat"));
 const Goals         = lazy(() => import("@/pages/Goals"));
 const ComingSoon    = lazy(() => import("@/pages/ComingSoon"));
 
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/watchlist" element={<Watchlist />} />
             <Route path="/research"  element={<Research />} />
             <Route path="/advisor"   element={<Advisor />} />
+            <Route path="/chat"      element={<Chat />} />
             <Route path="/goals"     element={<Goals />} />
             <Route path="/settings"  element={<ComingSoon />} />
 
