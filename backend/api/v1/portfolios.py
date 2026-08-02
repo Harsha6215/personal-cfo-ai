@@ -311,3 +311,127 @@ async def add_holding(
         "asset_id": asset.id,
         "event_id": event.id,
     }
+
+
+# ── Edit Holding ───────────────────────────────────────────────────────────────
+
+class EditHoldingRequest(BaseModel):
+    """Edit quantity and/or price of a holding's BUY events."""
+    quantity: float | None = None
+    price: float | None = None
+    name: str | None = None
+
+
+@router.put(
+    "/{portfolio_id}/holdings/{ticker}",
+    summary="Edit a holding (update quantity/price)",
+    description="Updates the most recent BUY event for this ticker. Use for corrections.",
+)
+async def edit_holding(
+    portfolio_id: str,
+    ticker: str,
+    body: EditHoldingRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    # Verify portfolio ownership
+    result = await db.execute(
+        select(Portfolio).where(Portfolio.id == portfolio_id, Portfolio.user_id == user.id)
+    )
+    portfolio = result.scalar_one_or_none()
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
+    # Find the asset
+    result = await db.execute(select(Asset).where(Asset.ticker == ticker.upper()).limit(1))
+    asset = result.scalar_one_or_none()
+    if not asset:
+        raise HTTPException(status_code=404, detail=f"Asset {ticker} not found")
+
+    # Get the most recent BUY event for this asset in this portfolio
+    result = await db.execute(
+        select(FinancialEvent)
+        .where(
+            FinancialEvent.portfolio_id == portfolio_id,
+            FinancialEvent.asset_id == asset.id,
+            FinancialEvent.event_type.in_([EventType.BUY, EventType.SIP]),
+        )
+        .order_by(FinancialEvent.executed_at.desc())
+        .limit(1)
+    )
+    event = result.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail=f"No BUY event found for {ticker}")
+
+    # Update fields
+    if body.quantity is not None:
+        event.quantity = body.quantity
+        event.amount = body.quantity * float(event.price)
+    if body.price is not None:
+        event.price = body.price
+        event.amount = float(event.quantity) * body.price
+    if body.name is not None:
+        asset.name = body.name
+
+    await db.flush()
+    logger.info("portfolio.holding_edited", portfolio_id=portfolio_id, ticker=ticker, user_id=user.id)
+
+    return {
+        "status": "updated",
+        "ticker": ticker.upper(),
+        "quantity": float(event.quantity),
+        "price": float(event.price),
+        "invested": float(event.amount),
+    }
+
+
+# ── Delete Holding ─────────────────────────────────────────────────────────────
+
+@router.delete(
+    "/{portfolio_id}/holdings/{ticker}",
+    summary="Delete a holding (remove all events for this ticker)",
+    description="Removes all financial events for this ticker from the portfolio.",
+)
+async def delete_holding(
+    portfolio_id: str,
+    ticker: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    # Verify portfolio ownership
+    result = await db.execute(
+        select(Portfolio).where(Portfolio.id == portfolio_id, Portfolio.user_id == user.id)
+    )
+    portfolio = result.scalar_one_or_none()
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
+    # Find the asset
+    result = await db.execute(select(Asset).where(Asset.ticker == ticker.upper()).limit(1))
+    asset = result.scalar_one_or_none()
+    if not asset:
+        raise HTTPException(status_code=404, detail=f"Asset {ticker} not found")
+
+    # Delete all events for this asset in this portfolio
+    from sqlalchemy import delete
+    result = await db.execute(
+        delete(FinancialEvent).where(
+            FinancialEvent.portfolio_id == portfolio_id,
+            FinancialEvent.asset_id == asset.id,
+        )
+    )
+    deleted_count = result.rowcount
+
+    logger.info(
+        "portfolio.holding_deleted",
+        portfolio_id=portfolio_id,
+        ticker=ticker,
+        events_deleted=deleted_count,
+        user_id=user.id,
+    )
+
+    return {
+        "status": "deleted",
+        "ticker": ticker.upper(),
+        "events_removed": deleted_count,
+    }

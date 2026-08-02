@@ -69,12 +69,6 @@ const columns: Column<Holding>[] = [
     render: (val) => <span className="font-mono text-xs">{formatINR(Number(val))}</span>,
   },
   {
-    key: "current_value",
-    header: "Current",
-    align: "right",
-    render: (val) => val ? <span className="font-mono font-medium">{formatINR(Number(val))}</span> : <span className="text-xs text-slate-400">—</span>,
-  },
-  {
     key: "pnl",
     header: "P&L",
     align: "right",
@@ -103,6 +97,7 @@ export default function Portfolio() {
   const [totalCurrentValue, setTotalCurrentValue] = useState<number | null>(null);
   const [totalPnl, setTotalPnl] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingTicker, setEditingTicker] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchPortfolio() {
@@ -203,6 +198,25 @@ export default function Portfolio() {
 
   const pnlIsPositive = (totalPnl ?? 0) >= 0;
 
+  async function handleDelete(ticker: string) {
+    if (!confirm(`Delete ${ticker} from portfolio? This removes all events for this stock.`)) return;
+    const token = getStoredToken();
+    try {
+      const res = await fetch(`/api/v1/portfolios/${data!.portfolio_id}/holdings/${ticker}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.detail || "Failed to delete");
+        return;
+      }
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message || "Failed to delete");
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Summary cards */}
@@ -285,11 +299,45 @@ export default function Portfolio() {
         )}
 
         <Table
-          columns={columns}
+          columns={[...columns, {
+            key: "actions" as any,
+            header: "Actions",
+            align: "center" as const,
+            width: "120px",
+            render: (_: any, row: Holding) => (
+              <div className="flex gap-1 justify-center">
+                <button
+                  onClick={() => setEditingTicker(editingTicker === row.ticker ? null : row.ticker)}
+                  className="rounded px-2 py-1 text-xs text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/20"
+                  title="Edit"
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={() => handleDelete(row.ticker)}
+                  className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                  title="Delete"
+                >
+                  🗑️
+                </button>
+              </div>
+            ),
+          }]}
           data={data.holdings}
           loading={pricesLoading}
           emptyMessage="No holdings yet. Add one manually or import your broker CSV."
         />
+
+        {/* Inline edit form for selected ticker */}
+        {editingTicker && (
+          <EditHoldingForm
+            portfolioId={data.portfolio_id}
+            ticker={editingTicker}
+            holding={data.holdings.find(h => h.ticker === editingTicker)}
+            onSaved={() => { setEditingTicker(null); window.location.reload(); }}
+            onCancel={() => setEditingTicker(null)}
+          />
+        )}
       </Card>
     </div>
   );
@@ -420,6 +468,119 @@ function AddHoldingForm({
             className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 transition"
           >
             {submitting ? "…" : "Add"}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+      {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+
+// ── Edit Holding Form ─────────────────────────────────────────────────────────
+
+function EditHoldingForm({
+  portfolioId,
+  ticker,
+  holding,
+  onSaved,
+  onCancel,
+}: {
+  portfolioId: string;
+  ticker: string;
+  holding?: Holding;
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
+  const [quantity, setQuantity] = useState(holding?.quantity?.toString() || "");
+  const [price, setPrice] = useState(holding?.average_cost?.toString() || "");
+  const [name, setName] = useState(holding?.name || "");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+
+    const token = getStoredToken();
+    const body: any = {};
+    if (quantity) body.quantity = parseFloat(quantity);
+    if (price) body.price = parseFloat(price);
+    if (name && name !== holding?.name) body.name = name;
+
+    try {
+      const res = await fetch(`/api/v1/portfolios/${portfolioId}/holdings/${ticker}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed to update");
+      }
+      onSaved();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mx-4 mb-4 rounded-lg border border-sky-200 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-900/20">
+      <p className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+        Edit <span className="text-sky-600 dark:text-sky-400">{ticker}</span>
+      </p>
+      <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Name</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="input text-sm"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Quantity</label>
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            className="input text-sm"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Avg Cost (₹)</label>
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="input text-sm"
+          />
+        </div>
+        <div className="flex items-end gap-2">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 disabled:opacity-50 transition"
+          >
+            {submitting ? "…" : "Save"}
           </button>
           <button
             type="button"
